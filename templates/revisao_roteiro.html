@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% from '_pipeline_horizontal.html' import renderizar_pipeline %}
+{% block body_attrs %} data-projeto-id="{{ projeto_id }}"{% endblock %}
+{% block titulo %}Revisar roteiro - {{ projeto_id }}{% endblock %}
+{% block breadcrumb %}Projetos / {{ projeto_id }}{% endblock %}
+{% block titulo_pagina %}Revisão de roteiro{% endblock %}
+{% block acoes_header %}
+  {% if perfil %}<span class="tag tag-outline">{{ perfil.nome_exibicao }}</span>{% endif %}
+{% endblock %}
+{% block pipeline %}
+  {% set botoes_acao %}
+    {% if modo_readonly and projeto_concluido %}
+      <a href="{{ url_for('concluido', projeto_id=projeto_id) }}" class="btn btn-ghost"><i class="ph ph-arrow-left"></i> Voltar à conclusão</a>
+      <a href="{{ url_for('home') }}" class="btn btn-ghost"><i class="ph ph-arrow-left"></i> Voltar aos projetos</a>
+    {% else %}
+      <a href="{{ url_for('home') }}" class="btn btn-ghost">Voltar</a>
+    {% endif %}
+    {% if not modo_readonly %}
+      {% if not roteiro_importado %}
+        <button type="button" id="btn-regerar" class="botao botao-secundario">Refazer roteiro com instruções</button>
+      {% endif %}
+      <button type="button" id="btn-cancelar" class="botao botao-perigo">Cancelar projeto</button>
+      <button type="submit" id="btn-aprovar" class="botao botao-primario" form="form-revisao">Aprovar e prosseguir</button>
+    {% endif %}
+  {% endset %}
+  {% if pipeline_steps %}
+  {% call renderizar_pipeline(pipeline_steps) %}{{ botoes_acao }}{% endcall %}
+  {% else %}
+  <div class="pipeline-horizontal"><div class="pipeline-acoes">{{ botoes_acao }}</div></div>
+  {% endif %}
+{% endblock %}
+{% block conteudo %}
+  <div style="padding:22px 28px 48px;">
+
+  {% if aguardando_audio %}
+    <p class="aviso">
+      Este roteiro ja foi aprovado. Escolha agora a origem do audio da
+      narracao para continuar.
+    </p>
+  {% endif %}
+
+  {% if roteiro_importado and not aguardando_audio %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-info"></i>
+      Roteiro importado por upload. Revise e edite se necessário antes de
+      aprovar.
+    </div>
+  {% endif %}
+
+  {% if modo_readonly %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-info"></i>
+      Modo visualização — o roteiro já foi aprovado e o pipeline seguiu
+      adiante. Nenhuma ação desta tela está disponível aqui.
+    </div>
+  {% endif %}
+
+  {% if job_metadata and job_metadata.pergunta_promessa %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-question"></i>
+      <strong>Pergunta-promessa deste roteiro:</strong>
+      {{ job_metadata.pergunta_promessa }}
+      <br><small>Avalie a promessa antes de ler o texto — uma promessa
+      errada (rasa demais, genérica, ou que já entrega a resposta) é
+      sinal de roteiro errado.</small>
+    </div>
+  {% endif %}
+
+  {% set nomes_alto = job_metadata.nomes_nao_confirmados | selectattr('nivel', 'equalto', 'alto') | list if job_metadata and job_metadata.nomes_nao_confirmados else [] %}
+  {% if nomes_alto %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-warning"></i>
+      <strong>Nome não corroborado pelo resumo de pesquisa; confirme em
+      fonte escrita antes de aprovar.</strong>
+      <ul style="margin:6px 0 0 20px;">
+        {% for item in nomes_alto %}
+          <li><strong>{{ item.nome }}</strong> — <small>"…{{ item.contexto }}…"</small></li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if job_metadata and job_metadata.titulos_possivel_divergencia %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-warning"></i>
+      <strong>Título pode divergir do núcleo editorial do roteiro.</strong>
+      {% if job_metadata.nucleo_editorial %}Núcleo: "{{ job_metadata.nucleo_editorial }}".{% endif %}
+      <ul style="margin:6px 0 0 20px;">
+        {% for titulo in job_metadata.titulos_possivel_divergencia %}
+          <li>{{ titulo }}</li>
+        {% endfor %}
+      </ul>
+      Aviso lexical automático — pode ser falso positivo. Revise se o
+      título entrega o gancho certo.
+    </div>
+  {% endif %}
+
+  {% if job_metadata and job_metadata.numeros_sem_derivacao %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-warning"></i>
+      <strong>Número de duração citado sem derivação próxima.</strong>
+      <ul style="margin:6px 0 0 20px;">
+        {% for item in job_metadata.numeros_sem_derivacao %}
+          <li><strong>{{ item.numero_detectado }}</strong> — <small>"{{ item.trecho }}"</small></li>
+        {% endfor %}
+      </ul>
+      Não prova que está errado — só marca trechos que merecem checar de
+      onde veio o número.
+    </div>
+  {% endif %}
+
+  {% if job_metadata and job_metadata.aviso_tamanho %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-warning"></i>
+      <strong>Roteiro abaixo do tamanho alvo.</strong>
+      Saiu com {{ job_metadata.palavras_narradas }} palavras narradas, o
+      alvo configurado para este projeto era
+      {{ job_metadata.palavras_alvo }} palavras
+      (ratio: {{ (job_metadata.ratio_tamanho * 100) | round | int }}%).
+      {% if job_metadata.numero_expansoes %}
+        <br>{{ job_metadata.numero_expansoes }} tentativa(s) de expansão
+        automática já foram feitas.
+      {% endif %}
+      {% if job_metadata.justificativa_tamanho %}
+        <br>Justificativa da IA: {{ job_metadata.justificativa_tamanho }}
+      {% endif %}
+      Revise antes de aprovar — você pode aprovar assim mesmo ou
+      refazer o roteiro com instruções.
+    </div>
+  {% endif %}
+
+  <!-- Bloco A: cabecalho -->
+  <div class="status-cabecalho">
+    <div class="revisao-titulo-linha">
+      <h1>{{ projeto_id }}</h1>
+      {% if perfil %}
+        <span class="badge">{{ perfil.nome_exibicao }}</span>
+      {% endif %}
+    </div>
+    {% if job_metadata and job_metadata.custo_estimado_usd is defined and job_metadata.custo_estimado_usd is not none %}
+      <p class="status-meta">
+        {% if job_metadata.data_geracao %}Roteiro gerado em {{ job_metadata.data_geracao }}{% else %}Roteiro gerado pela IA{% endif -%}
+        · Custo do roteiro:
+        <span class="custo-roteiro" title="Custo referente APENAS à geração deste roteiro. Não inclui áudio, cortes, ou etapas futuras.">
+          ${{ "%.2f"|format(job_metadata.custo_estimado_usd) }}
+          (R$ {{ "%.2f"|format(job_metadata.custo_estimado_usd * cotacao_usd_brl) }})
+        </span>
+        {%- if not cotacao_configurada %} <span class="cotacao-aviso">(cotação estimada)</span>{% endif -%}
+        {%- if job_metadata.web_searches_usadas is defined and job_metadata.web_searches_usadas is not none %} · {{ job_metadata.web_searches_usadas }} busca(s) web{% endif %}
+      </p>
+    {% elif job_metadata and job_metadata.origem_roteiro == 'upload' %}
+      <p class="status-meta">
+        <i class="ph ph-upload-simple"></i>
+        Roteiro importado por upload
+        {%- if job_metadata.caracteres is defined and job_metadata.caracteres is not none %} ({{ job_metadata.caracteres }} caracteres){% endif %}
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Painel explicativo sobre as marcacoes de origem do roteiro -->
+  <div class="painel-notas-explicativo card">
+    <button type="button" class="btn-expandir" aria-expanded="false">
+      ℹ️ Sobre as marcações no roteiro
+    </button>
+    <div class="painel-conteudo" hidden>
+      <p>Este roteiro contém 3 tipos de marcações que a IA adicionou pra
+         você verificar informações:</p>
+      <ul>
+        <li><span class="badge-exemplo nota-badge nota-fonte">①</span>
+            <strong>Fonte:</strong> trecho baseado num vídeo-fonte
+            específico. Clique pra ver o momento exato no vídeo.</li>
+        <li><span class="badge-exemplo nota-badge nota-externa">②</span>
+            <strong>Externa:</strong> referência a fonte web ou
+            identificador. Clique pra ver detalhes.</li>
+        <li><span class="badge-exemplo nota-badge nota-aviso">⚠</span>
+            <strong>Atenção:</strong> a IA sinalizou algo pra você
+            revisar. Passe o mouse pra ler o aviso.</li>
+      </ul>
+      <p><strong>Você não é obrigado a revisar nada disso.</strong>
+         Todas as marcações são removidas automaticamente antes de
+         gerar o áudio. Elas servem só pra facilitar sua revisão se
+         você quiser verificar fatos.</p>
+      <button class="btn-ignorar-notas botao botao-secundario" type="button">
+        Ignorar todas as notas (só mostrar texto limpo)
+      </button>
+    </div>
+  </div>
+
+  <form id="form-revisao" method="post" action="{{ url_for('aprovar_roteiro', projeto_id=projeto_id) }}" enctype="multipart/form-data"
+        data-idioma-roteiro="{{ idioma_roteiro }}" data-perfil-ativo="{{ perfil.nome if perfil else '' }}"
+        data-modo-readonly="{{ 'true' if modo_readonly else 'false' }}">
+
+    <!-- Bloco B: editor do roteiro -->
+    <div class="card status-bloco">
+      <div class="editor-cabecalho">
+        <h3>Roteiro</h3>
+        <div class="editor-tabs">
+          <button type="button" class="editor-tab" id="tab-editar">Editar</button>
+          <button type="button" class="editor-tab" id="tab-preview">Preview</button>
+        </div>
+      </div>
+      <textarea id="roteiro-textarea" name="roteiro_editado" rows="25" spellcheck="false"
+                data-projeto-id="{{ projeto_id }}" {% if modo_readonly %}readonly{% endif %}>{{ roteiro_md }}</textarea>
+      <div id="roteiro-preview" class="roteiro-preview oculto">
+        {% if roteiro_preview_html %}
+          {{ roteiro_preview_html | safe }}
+        {% else %}
+          <p>Roteiro ainda nao encontrado para este projeto.</p>
+        {% endif %}
+      </div>
+      <p class="contador-roteiro">
+        <span id="contador-caracteres">0</span> caracteres no editor
+        {%- if job_metadata and job_metadata.palavras_narradas is defined and job_metadata.palavras_narradas is not none %}
+          · <span id="contador-palavras">{{ job_metadata.palavras_narradas }}</span> palavras narradas na geração
+        {%- endif %}
+      </p>
+    </div>
+
+    <!-- Bloco C: escolha do titulo -->
+    <div class="card status-bloco">
+      <h3>Título</h3>
+      {% for titulo in titulos_sugeridos.titulos %}
+        <label class="radio-linha">
+          <input type="radio" name="titulo_opcao" value="{{ loop.index0 }}"
+                 {% if titulo_ja_escolhido == titulo %}checked{% elif not titulo_ja_escolhido and loop.first %}checked{% endif %}
+                 {% if modo_readonly %}disabled{% endif %}>
+          {{ titulo }}
+        </label>
+      {% endfor %}
+      <label class="radio-linha">
+        <input type="radio" name="titulo_opcao" value="custom" id="titulo-opcao-custom"
+               {% if titulo_ja_escolhido and titulo_ja_escolhido not in titulos_sugeridos.titulos %}checked
+               {% elif not titulo_ja_escolhido and not titulos_sugeridos.titulos %}checked{% endif %}
+               {% if modo_readonly %}disabled{% endif %}>
+        Usar título personalizado
+      </label>
+      <input type="text" name="titulo_custom" id="titulo_custom" placeholder="Digite um título personalizado"
+             value="{% if titulo_ja_escolhido and titulo_ja_escolhido not in titulos_sugeridos.titulos %}{{ titulo_ja_escolhido }}{% endif %}"
+             {% if modo_readonly %}readonly{% endif %}>
+    </div>
+
+    <!-- Bloco D: origem do audio -->
+    <div class="card status-bloco">
+      <h3>Origem do áudio da narração</h3>
+
+      {% if algum_tts_configurado %}
+        <label class="radio-linha">
+          <input type="radio" name="origem_audio" value="tts" id="origem-audio-tts" {% if not aguardando_audio %}checked{% endif %}
+                 {% if modo_readonly %}disabled{% endif %}>
+          Gerar automaticamente
+        </label>
+        <div id="bloco-tts" class="subcontroles">
+          <div class="campo">
+            <label for="tts_provedor">Provedor</label>
+            <select name="tts_provedor" id="tts_provedor" {% if modo_readonly %}disabled{% endif %}>
+              {% for provedor in provedores_tts %}
+                {% set chave_ambigua_openai = provedor == "openai" and openai_chave_presente %}
+                <option value="{{ provedor }}" {% if not tts_disponiveis[provedor] %}disabled{% endif %}
+                        title="{% if chave_ambigua_openai %}A chave OPENAI_API_KEY configurada serve so' pro provedor de imagem da thumbnail (Etapa 7) - TTS OpenAI ainda nao esta implementado nesta versao.{% elif not tts_disponiveis[provedor] %}Chave {{ provedor }} nao configurada. Configure em Ajustes.{% endif %}">
+                  {{ provedor_tts_nomes[provedor] }}{% if chave_ambigua_openai %} (ainda não implementado){% elif not tts_disponiveis[provedor] %} (chave não configurada){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="campo">
+            <label for="tts_voz">Voz</label>
+            <select name="tts_voz" id="tts_voz" {% if modo_readonly %}disabled{% endif %}></select>
+          </div>
+          <div id="preview-voz-container" class="preview-voz oculto">
+            <p id="preview-voz-carregando" class="dica-campo oculto">Carregando preview...</p>
+            <audio id="preview-voz-audio" class="oculto" controls></audio>
+            <p id="preview-voz-erro" class="erro-inline oculto">
+              <i class="ph ph-warning"></i>
+              <span id="preview-voz-erro-msg"></span>
+            </p>
+          </div>
+        </div>
+      {% endif %}
+
+      <label class="radio-linha">
+        <input type="radio" name="origem_audio" value="upload" id="origem-audio-upload" {% if modo_readonly %}disabled{% endif %}>
+        Vou fornecer o áudio
+      </label>
+      <div id="bloco-upload" class="subcontroles">
+        <div class="campo">
+          <label for="audio_upload">Arquivo de áudio (MP3, WAV, M4A ou OGG)</label>
+          <input type="file" name="audio_upload" id="audio_upload" accept="audio/*" {% if modo_readonly %}disabled{% endif %}>
+        </div>
+      </div>
+
+      <label class="radio-linha">
+        <input type="radio" name="origem_audio" value="depois" id="origem-audio-depois" {% if not algum_tts_configurado %}checked{% endif %}
+               {% if modo_readonly %}disabled{% endif %}>
+        Decidir depois
+      </label>
+    </div>
+
+    <!-- Bloco E: musica de fundo (movido de novo_projeto.html - Grupo B da
+         sessao de UX. Grava em entrada/musica_fundo/ e atualiza
+         com_musica_fundo em configuracao_video.json via aprovar_roteiro,
+         mesmo endpoint deste form. 6_montar_video.py nao muda.) -->
+    <div class="card status-bloco">
+      <h3>Música de fundo (opcional)</h3>
+      <label class="radio-linha">
+        <input type="checkbox" name="com_musica_fundo" id="com-musica" {% if com_musica_fundo_marcado %}checked{% endif %}
+               {% if modo_readonly %}disabled{% endif %}>
+        Usar música de fundo
+      </label>
+      <div id="secao-upload-musica" style="display:none; margin-top:10px;">
+        <label for="musicas">Arquivos de música (MP3, WAV, M4A)</label>
+        <input class="input" type="file" name="musicas[]" id="musicas" accept=".mp3,.wav,.m4a" multiple {% if modo_readonly %}disabled{% endif %}>
+        <p class="ajuda">
+          Selecione uma ou mais faixas. Se múltiplas, tocam em sequência
+          alfabética por nome de arquivo, em loop até cobrir toda a
+          duração do vídeo. Volume aplicado automaticamente (ducking
+          durante a narração).
+        </p>
+      </div>
+    </div>
+
+    <p id="erro-inline-aprovar" class="erro-inline oculto">
+      <i class="ph ph-warning"></i>
+      <span id="erro-inline-aprovar-msg"></span>
+    </p>
+  </form>
+  </div>
+
+  <dialog class="modal modal-video" id="modal-video">
+    <video id="modal-video-player" controls></video>
+    <div class="modal-acoes">
+      <button type="button" class="botao botao-secundario" id="btn-fechar-video">Fechar</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="modal-nota-externa">
+    <h2>Referência</h2>
+    <p id="modal-nota-externa-texto"></p>
+    <div class="modal-acoes">
+      <button type="button" class="botao botao-secundario" id="btn-fechar-nota-externa">Fechar</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="modal-regerar">
+    <h2>Refazer roteiro com instruções</h2>
+    <form method="post" action="{{ url_for('regerar_roteiro', projeto_id=projeto_id) }}">
+      <textarea name="feedback_usuario" id="feedback_usuario" placeholder="O que deve mudar no roteiro?"></textarea>
+      <div class="modal-acoes">
+        <button type="submit" class="botao botao-primario">Enviar e regerar</button>
+        <button type="button" class="botao botao-secundario" id="btn-fechar-regerar">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="modal-aviso">
+    <h2 id="modal-aviso-titulo"></h2>
+    <p id="modal-aviso-descricao"></p>
+    <div class="modal-acoes">
+      <button type="button" class="botao botao-secundario" id="btn-fechar-aviso">Fechar</button>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="modal-cancelar">
+    <h2>Cancelar projeto</h2>
+    <p>Tem certeza? Isso apaga a pasta inteira do projeto e não pode ser desfeito.</p>
+    <form method="post" action="{{ url_for('cancelar_projeto', projeto_id=projeto_id) }}">
+      <div class="modal-acoes">
+        <button type="submit" class="botao botao-perigo">Sim, cancelar projeto</button>
+        <button type="button" class="botao botao-secundario" id="btn-fechar-cancelar">Voltar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="application/json" id="dados-vozes-tts">{{ vozes_por_provedor | tojson }}</script>
+  <script type="application/json" id="dados-avisos-traducoes">{{ avisos_traducoes | tojson }}</script>
+  <script type="application/json" id="dados-aviso-fallback">{{ aviso_fallback | tojson }}</script>
+  <script src="{{ url_for('static', filename='revisao.js') }}"></script>
+  <script src="{{ url_for('static', filename='preview_voz.js') }}"></script>
+  <script src="{{ url_for('static', filename='pipeline_render.js') }}"></script>
+  <script src="{{ url_for('static', filename='pipeline_polling.js') }}"></script>
+{% endblock %}

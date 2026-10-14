@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% from '_pipeline_horizontal.html' import renderizar_pipeline %}
+{% block titulo %}Thumbnail - {{ projeto_id }}{% endblock %}
+{% block breadcrumb %}Projetos / {{ projeto_id }}{% endblock %}
+{% block titulo_pagina %}Revisar thumbnail{% endblock %}
+{% block pipeline %}
+  {% set botoes_acao %}
+    {% if modo_readonly and projeto_concluido %}
+      <a href="{{ url_for('concluido', projeto_id=projeto_id) }}" class="btn btn-ghost">
+        <i class="ph ph-arrow-left"></i> Voltar à conclusão
+      </a>
+      <a href="{{ url_for('home') }}" class="btn btn-ghost">
+        <i class="ph ph-arrow-left"></i> Voltar aos projetos
+      </a>
+    {% else %}
+      <a href="{{ url_for('status', projeto_id=projeto_id) }}" class="btn btn-ghost">Voltar</a>
+    {% endif %}
+  {% endset %}
+  {% if pipeline_steps %}
+  {% call renderizar_pipeline(pipeline_steps) %}{{ botoes_acao }}{% endcall %}
+  {% else %}
+  <div class="pipeline-horizontal"><div class="pipeline-acoes">{{ botoes_acao }}</div></div>
+  {% endif %}
+{% endblock %}
+{% block conteudo %}
+<style>
+  .thumb-slot { border-radius:8px; padding:14px; box-shadow:inset 0 0 0 1px var(--color-divider); }
+  .thumb-slot-preview { display:flex; align-items:center; gap:12px; margin-top:10px; }
+  .thumb-slot-preview img { width:72px; height:72px; object-fit:cover; border-radius:6px; box-shadow:inset 0 0 0 1px var(--color-divider); }
+  .thumb-slots-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .thumb-aviso-vision { border-radius:8px; padding:10px 14px; font-size:13px; margin:0 0 12px; }
+  .thumb-aviso-vision.media { background:var(--cor-aviso-fundo); border:1px solid var(--cor-aviso-borda); color:var(--cor-aviso-texto); }
+  .thumb-aviso-vision.nomatch { background:var(--cor-aviso-fundo); border:1px solid var(--cor-aviso-borda); color:var(--cor-aviso-texto); }
+  /* Grid de composicoes acumuladas (Grupo D/E) - moldura 16:9 fixa e
+     overflow:hidden garante que a imagem NUNCA sangre pra fora do
+     container, seja qual for a resolucao exata devolvida pela API
+     (hoje sempre 1536x864, exato 16:9 - object-fit:cover so' entra em
+     acao numa eventual variacao minima, sem cortar nada perceptivel). */
+  .thumb-preview-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:16px; }
+  .thumb-preview-item { position:relative; cursor:pointer; border-radius:8px; overflow:hidden; aspect-ratio:16/9; box-shadow:inset 0 0 0 2px var(--color-divider); background:#000; }
+  .thumb-preview-item.selecionado { box-shadow:0 0 0 3px var(--color-accent), 0 0 16px var(--color-accent); }
+  .thumb-preview-item:not(.selecionado) { opacity:.78; }
+  .thumb-preview-item img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb-preview-excluir {
+    position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%;
+    background:rgba(0,0,0,.65); color:#fff; border:none; cursor:pointer; font-size:14px; line-height:1;
+  }
+  .thumb-preview-excluir:hover { background:rgba(200,40,40,.9); }
+  #campo-briefing { width:100%; min-height:220px; font-family:monospace; font-size:12.5px; resize:vertical; }
+  .thumb-briefing-fotos { display:flex; gap:14px; margin-top:12px; flex-wrap:wrap; }
+  .thumb-briefing-foto { text-align:center; }
+  .thumb-briefing-foto img { width:110px; height:110px; object-fit:cover; border-radius:6px; box-shadow:inset 0 0 0 1px var(--color-divider); display:block; margin-bottom:6px; }
+</style>
+<div style="padding:22px 26px 60px; width:100%; max-width:none;">
+
+  {% if modo_readonly %}
+    <div class="banner banner-aviso" style="margin-bottom: 16px;">
+      <i class="ph ph-info"></i>
+      Modo visualização — a thumbnail já foi escolhida e o projeto está
+      concluído. Nenhuma ação desta tela está disponível aqui.
+    </div>
+
+    {% if thumbnail_final_disponivel %}
+    <div class="card" style="padding:16px; margin-bottom:16px;">
+      <h3 style="margin-top:0;">Thumbnail escolhida</h3>
+      <img src="{{ url_for('thumbnail_arquivo_raiz', projeto_id=projeto_id, nome='final.jpg') }}"
+           alt="Thumbnail final" style="max-width:100%; height:auto; border-radius:8px; box-shadow:inset 0 0 0 1px var(--color-divider); display:block;">
+    </div>
+    {% endif %}
+  {% else %}
+  <p class="text-muted" style="margin-top:0;">
+    Envie as fotos dos sujeitos (opcional), gere o briefing exportável e gere a thumbnail pela OpenAI a partir dele.
+  </p>
+  {% endif %}
+
+  {% if not modo_readonly and etapa7_falhou %}
+    <div class="erro-destaque" style="margin-bottom:16px;">
+      <p style="margin-top:0;">A preparação automática da thumbnail falhou{% if etapa7_mensagem %}: {{ etapa7_mensagem }}{% endif %}.
+      Você pode tentar de novo, ou continuar sem ela — envie fotos e gere o briefing abaixo mesmo assim.</p>
+      <button type="button" id="btn-tentar-candidatos" class="btn btn-secondary" style="margin:0;"
+              data-url="{{ url_for('gerar_thumbnail_rota', projeto_id=projeto_id) }}"
+              data-url-status="{{ url_for('status', projeto_id=projeto_id) }}">
+        <i class="ph ph-arrow-clockwise"></i> Tentar novamente
+      </button>
+    </div>
+  {% endif %}
+
+  <!-- Area 1: sujeitos -->
+  <div class="card" style="padding:16px;">
+    <h3 style="margin-top:0;">Sujeitos</h3>
+    <p class="text-muted" style="font-size:12px; margin-top:0;">
+      Até 2 fotos, cada uma com o papel declarado por você — a identificação nunca é automática.
+      As fotos originais (sem recorte) são enviadas direto pra API de composição.
+    </p>
+
+    <div class="thumb-slots-grid">
+      {% for slot, rotulo in (("hero", "Sujeito principal"), ("secondary", "Sujeito secundário (opcional)")) %}
+      <div class="thumb-slot">
+        <strong style="font-size:13px;">{{ rotulo }}</strong>
+        {% set info = sujeitos_declarados.get(slot) %}
+        <div class="thumb-slot-preview">
+          {% if info %}
+          <img src="{{ url_for('thumbnail_sujeito_original', projeto_id=projeto_id, slot=slot) }}" alt="">
+          {% endif %}
+          <div style="flex:1; min-width:0;">
+            <span id="status-slot-{{ slot }}" class="text-muted" style="font-size:12px; display:block; word-break:break-all;">
+              {% if info %}{{ info.arquivo }} — papel: <span id="papel-atual-{{ slot }}">{{ info.papel }}</span>{% else %}Nenhuma foto enviada.{% endif %}
+            </span>
+            {% if not modo_readonly %}
+            <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <select class="input" id="papel-{{ slot }}" data-tem-foto="{{ 'true' if info else 'false' }}" style="width:auto;">
+                {% for papel in papeis_sujeito_validos %}
+                <option value="{{ papel }}" {% if info and info.papel == papel %}selected{% endif %}>{{ papel|capitalize }}</option>
+                {% endfor %}
+              </select>
+              <label class="btn btn-secondary" style="cursor:pointer; margin:0;">
+                <i class="ph ph-upload-simple"></i> {% if info %}Trocar{% else %}Enviar{% endif %}
+                <input type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none;"
+                       onchange="BrollFoundryThumbnail.uploadSujeito('{{ slot }}', this)">
+              </label>
+              {% if info %}
+              <button type="button" class="btn btn-ghost" onclick="BrollFoundryThumbnail.removerSujeito('{{ slot }}')">Remover</button>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if not modo_readonly %}
+  <!-- Area 2 (Grupo B/F): briefing exportavel - unico campo de texto
+       editavel da tela, com seletor manual de template. -->
+  <div class="card" style="padding:16px; margin-top:16px;">
+    <h3 style="margin-top:0;">Briefing exportável</h3>
+    <p class="text-muted" style="font-size:12px; margin-top:0;">
+      Prompt completo em inglês, pronto pra colar em qualquer gerador de imagem junto das fotos abaixo,
+      ou pra usar direto no botão "Gerar thumbnail pela OpenAI". Funciona sem nenhuma chave de API de
+      imagem configurada — é o caminho que sempre funciona.
+    </p>
+
+    {% if briefing_stale or textos.briefing_desatualizado %}
+    <div class="thumb-aviso-vision nomatch" id="aviso-briefing-desatualizado">
+      Os sujeitos mudaram (foto ou papel) depois deste briefing ter sido gerado — o texto
+      abaixo pode descrever a pessoa errada. Clique em "Gerar / regenerar briefing"
+      antes de compor a thumbnail.
+    </div>
+    {% endif %}
+    {% if textos.fallback_usado %}
+    <div class="thumb-aviso-vision media">
+      Headline gerado em modo fallback — o roteiro não tinha um núcleo editorial
+      compacto válido, então o headline nasceu de uma versão resumida da
+      pergunta-promessa em vez do núcleo curado. Revise com atenção extra.
+    </div>
+    {% endif %}
+    {% if textos.conceito_visual_ausente %}
+    <div class="thumb-aviso-vision nomatch">
+      A IA não identificou um elemento visual concreto (conceito visual) claro pra este caso —
+      o briefing abaixo pode ter puxado um detalhe chamativo mas secundário do roteiro em vez
+      do elemento que o título realmente promete. Revise o texto do briefing manualmente antes
+      de gerar a composição.
+    </div>
+    {% endif %}
+    {% if textos.fallback_sem_julgamento %}
+    <div class="thumb-aviso-vision nomatch">
+      O headline usado neste briefing <strong>não foi avaliado pelo juiz</strong> (falha
+      na chamada de avaliação, ou nenhum candidato sobrou pra avaliar) — é
+      o melhor candidato bruto disponível, sem nota nenhuma. Revisão
+      humana é essencial aqui, mais do que no aviso padrão abaixo.
+    </div>
+    {% elif textos.aviso_revisao_humana %}
+    <div class="thumb-aviso-vision nomatch">
+      Nenhum candidato de headline passou do limiar de aprovação do juiz em
+      duas rodadas — o headline usado é o melhor disponível, mas recomendamos
+      revisão humana antes de aprovar.
+      {% if textos.judge_score is not none %}(nota do juiz: {{ textos.judge_score }}/12){% endif %}
+    </div>
+    {% endif %}
+
+    <div style="display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:10px;">
+      <div style="flex:1; min-width:260px;">
+        <label class="text-muted" style="font-size:12px; display:block;">Template de composição</label>
+        <select id="campo-template" class="input">
+          {% for codigo in templates_disponiveis %}
+          {% set elegivel = codigo in templates_elegiveis_atual %}
+          <option value="{{ codigo }}"
+                  {% if codigo == template_sugerido %}selected{% endif %}
+                  {% if not elegivel %}disabled{% endif %}
+                  title="{{ templates_descricoes.get(codigo, '') }}">
+            {{ templates_nomes.get(codigo, codigo) }}{% if codigo == template_sugerido %} (sugerido pelo sistema){% endif %}{% if not elegivel %} — indisponível: {{ templates_motivo_curto.get(codigo, '') }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+        <span id="status-motivo-template" class="text-muted" style="font-size:11px; display:block; margin-top:4px;">
+          {{ templates_descricoes.get(template_sugerido, "") }}
+        </span>
+      </div>
+    </div>
+    <details style="margin-bottom:10px;">
+      <summary class="text-muted" style="font-size:11px; cursor:pointer;">Ver o que cada template mostra</summary>
+      <ul style="font-size:12px; margin:8px 0 0; padding-left:18px;">
+        {% for codigo in templates_disponiveis %}
+        <li style="margin-bottom:4px;">
+          <strong>{{ templates_nomes.get(codigo, codigo) }}</strong> — {{ templates_descricoes.get(codigo, '') }}
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+
+    {% if textos.conceito_visual and textos.conceito_visual.elemento_principal %}
+    <div class="card" style="padding:10px 14px; margin-bottom:10px; box-shadow:inset 0 0 0 1px var(--color-divider);">
+      <span class="text-muted" style="font-size:11px; display:block; text-transform:uppercase; letter-spacing:.04em;">
+        Conceito visual (extraído automaticamente — não editável aqui, só no texto do briefing abaixo)
+      </span>
+      <p style="margin:6px 0 0; font-size:13px;">
+        <strong>{{ textos.conceito_visual.elemento_principal }}</strong>
+        <span class="text-muted">({{ textos.conceito_visual.tipo_elemento or 'outro' }})</span>
+        {% if textos.conceito_visual.acao_ou_momento %}
+        <br>{{ textos.conceito_visual.acao_ou_momento }}
+        {% endif %}
+        {% if textos.conceito_visual.revelacao %}
+        <br>→ {{ textos.conceito_visual.revelacao }}
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+    <textarea id="campo-briefing" class="input">{{ textos.briefing_completo or '' }}</textarea>
+    <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <button type="button" class="btn btn-secondary" onclick="BrollFoundryThumbnail.gerarBriefing()">
+        <i class="ph ph-magic-wand"></i> Gerar / regenerar briefing
+      </button>
+      <button type="button" class="btn btn-ghost" onclick="BrollFoundryThumbnail.copiarBriefing()">
+        <i class="ph ph-copy"></i> Copiar
+      </button>
+      <button type="button" class="btn btn-ghost" onclick="BrollFoundryThumbnail.regenerarMetadados()">
+        <i class="ph ph-arrow-clockwise"></i> Regenerar dados automáticos
+      </button>
+      <span id="status-briefing" class="text-muted" style="font-size:12px;"></span>
+    </div>
+    {% if sujeitos_declarados.get('hero') or sujeitos_declarados.get('secondary') %}
+    <div class="thumb-briefing-fotos">
+      {% for slot, rotulo in (("hero", "Principal"), ("secondary", "Secundário")) %}
+      {% if sujeitos_declarados.get(slot) %}
+      <div class="thumb-briefing-foto">
+        <img src="{{ url_for('thumbnail_sujeito_original', projeto_id=projeto_id, slot=slot) }}" alt="{{ rotulo }}">
+        <a class="btn btn-ghost" style="font-size:11px; padding:4px 8px;"
+           href="{{ url_for('thumbnail_sujeito_original', projeto_id=projeto_id, slot=slot) }}"
+           target="_blank" rel="noopener">{{ rotulo }} — abrir</a>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--color-divider);">
+      {% if tem_openai_key %}
+      <button type="button" id="btn-composicao-ia" class="btn btn-primary" onclick="BrollFoundryThumbnail.gerarComposicaoIa()">
+        <i class="ph ph-sparkle"></i> Gerar thumbnail pela OpenAI (usa o briefing e as fotos)
+      </button>
+      <span id="status-composicao-ia" class="text-muted" style="font-size:12px; margin-left:10px;"></span>
+      {% else %}
+      <span class="text-muted" style="font-size:12px;">
+        Composição por IA exige <code>OPENAI_API_KEY</code> própria configurada em Ajustes — tem custo por imagem gerada.
+        Enquanto isso, o briefing acima continua disponível pra colar em qualquer outro gerador de imagem.
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Area 3 (Grupo D/E): composicoes acumuladas - grid persistente, cada
+       geracao soma (nunca substitui), com exclusao individual. -->
+  <div class="card" style="padding:16px; margin-top:16px;" id="bloco-previews" {% if not composicoes %}hidden{% endif %}>
+    <h3 style="margin-top:0;">Composições geradas</h3>
+    <p class="text-muted" style="font-size:12px; margin-top:0;">
+      Cada geração custa uma chamada real à API - compare e escolha a melhor, ou exclua as que não prestam.
+      Clicar numa opção apenas a seleciona pra você ver de perto — só "Finalizar projeto" grava a
+      thumbnail escolhida e conclui o projeto.
+    </p>
+    <div class="thumb-preview-grid" id="grid-previews">
+      {% for composicao in composicoes %}
+      <div class="thumb-preview-item" data-arquivo="{{ composicao.arquivo }}">
+        <img src="{{ composicao.url }}" alt="{{ composicao.arquivo }}">
+        <button type="button" class="thumb-preview-excluir" title="Excluir esta composição"
+                onclick="event.stopPropagation(); BrollFoundryThumbnail.excluirComposicao('{{ composicao.arquivo }}')">×</button>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--color-divider);">
+      <button type="button" id="btn-finalizar-projeto" class="btn btn-primary" disabled
+              onclick="BrollFoundryThumbnail.finalizarProjeto()">
+        <i class="ph ph-check-circle"></i> Finalizar projeto
+      </button>
+      <span id="status-finalizar-projeto" class="text-muted" style="font-size:12px; margin-left:10px;"></span>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  window.BrollFoundryThumbnail = {
+    projetoId: {{ projeto_id | tojson }},
+    urlUploadSujeito: {{ url_for('thumbnail_upload_sujeito', projeto_id=projeto_id) | tojson }},
+    urlRemoverSujeito: {{ url_for('thumbnail_remover_sujeito', projeto_id=projeto_id) | tojson }},
+    urlAtualizarPapelSujeito: {{ url_for('thumbnail_atualizar_papel_sujeito', projeto_id=projeto_id) | tojson }},
+    urlGerarBriefing: {{ url_for('thumbnail_gerar_briefing', projeto_id=projeto_id) | tojson }},
+    urlSalvarBriefing: {{ url_for('thumbnail_salvar_briefing', projeto_id=projeto_id) | tojson }},
+    urlRegenerarMetadados: {{ url_for('thumbnail_regenerar_metadados', projeto_id=projeto_id) | tojson }},
+    urlGerarComposicaoIa: {{ url_for('thumbnail_gerar_composicao_ia', projeto_id=projeto_id) | tojson }},
+    urlExcluirComposicao: {{ url_for('thumbnail_excluir_composicao', projeto_id=projeto_id) | tojson }},
+    urlEscolherComposicao: {{ url_for('thumbnail_escolher_composicao', projeto_id=projeto_id) | tojson }},
+    templatesNomes: {{ templates_nomes | tojson }},
+    templatesDescricoes: {{ templates_descricoes | tojson }},
+    templatesMotivoCurto: {{ templates_motivo_curto | tojson }},
+    templateSugerido: {{ template_sugerido | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='thumbnail.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% from '_pipeline_horizontal.html' import renderizar_pipeline %}
+{% block titulo %}Reorganizar clipes - {{ projeto_id }}{% endblock %}
+{% block breadcrumb %}Projetos / {{ projeto_id }}{% endblock %}
+{% block titulo_pagina %}Reorganizar clipes antes da montagem{% endblock %}
+{% block pipeline %}
+  {% set botoes_acao %}
+    <a href="{{ url_for('status', projeto_id=projeto_id) }}" class="btn btn-ghost">Voltar sem continuar</a>
+    <button id="btn-continuar" type="button" class="btn btn-primary">Continuar montagem &rarr;</button>
+  {% endset %}
+  {% if pipeline_steps %}
+  {% call renderizar_pipeline(pipeline_steps) %}{{ botoes_acao }}{% endcall %}
+  {% else %}
+  <div class="pipeline-horizontal"><div class="pipeline-acoes">{{ botoes_acao }}</div></div>
+  {% endif %}
+{% endblock %}
+{% block conteudo %}
+<style>
+  .timeline-clipe.arrastando, .banco-clipe.arrastando { opacity: 0.4; }
+  .timeline-clipe.drag-alvo { box-shadow: 0 0 0 2px var(--color-accent) !important; }
+  .timeline-clipe.selecionado { box-shadow: 0 0 0 2px var(--color-accent-2, var(--color-accent)) !important; }
+  .timeline-clipe-aproximado { outline: 1px dashed var(--cor-aviso-texto, #d9b062); outline-offset: -1px; }
+  .aviso-discreto {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin: 10px 0 0;
+    background: var(--cor-aviso-fundo, color-mix(in srgb, #d9b062 14%, transparent));
+    border: 1px solid var(--cor-aviso-borda, color-mix(in srgb, #d9b062 35%, transparent));
+    color: var(--cor-aviso-texto, #d9b062);
+  }
+  #timeline-regua { position: relative; height: 18px; width: max-content; min-width: 100%; }
+  #timeline-regua .regua-marca {
+    position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--color-divider);
+    font-size: 10px; color: var(--cor-texto-secundario, inherit); padding-left: 3px; white-space: nowrap;
+  }
+  .swap-row { cursor: pointer; }
+  .swap-row:hover { background: color-mix(in srgb, var(--color-accent) 8%, transparent); }
+  .swap-row-outras { font-size: 10px; opacity: 0.75; }
+  .timeline-fixo {
+    flex: none; width: 64px; height: 64px; margin: 8px 0; border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--cor-texto-secundario, inherit);
+    background: color-mix(in srgb, var(--color-neutral-500) 14%, transparent);
+    box-shadow: inset 0 0 0 1px var(--color-divider);
+    cursor: not-allowed;
+  }
+</style>
+<div style="padding:22px 26px 60px; width:100%; max-width:none;">
+
+  <p class="text-muted" style="margin-top:0;">
+    {{ timeline|length }} clipe(s) na timeline, {{ duracao_total_formatada }} de video.
+    Arraste um clipe da timeline (ou do banco abaixo) pra outra posicao. A duracao de cada
+    posicao pertence a POSICAO, nao ao clipe - arrastar livremente nunca dessincroniza a narracao.
+  </p>
+
+  {% if posicao_aproximada_a_partir_de is not none %}
+  <p class="aviso-discreto">
+    <i class="ph ph-warning"></i>
+    Tempos aproximados a partir da posição #{{ posicao_aproximada_a_partir_de }} (clipe sem duração
+    registrada) - os timestamps dessa posição em diante são estimativas, não o tempo real.
+  </p>
+  {% endif %}
+  {% if aviso_divergencia_narracao %}
+  <p class="aviso-discreto">
+    <i class="ph ph-warning"></i>
+    {{ aviso_divergencia_narracao }}
+  </p>
+  {% endif %}
+
+  <!-- Area 0: resultado da sincronizacao com IA (Feature A), se rodou -->
+  {% if sincronizacao_log %}
+  <div class="card" style="padding:16px; margin-bottom:16px;">
+    <details>
+      <summary style="cursor:pointer;">
+        <i class="ph ph-magic-wand"></i>
+        Sincronização com IA aplicada —
+        {{ sincronizacao_log.swaps_aplicados|length }} swap(s),
+        custo ~${{ "%.4f"|format(sincronizacao_log.custo_usd_total or 0) }}
+        (R$ {{ "%.2f"|format((sincronizacao_log.custo_usd_total or 0) * cotacao_usd_brl) }})
+      </summary>
+      {% if sincronizacao_log.swaps_aplicados %}
+      <div style="overflow-x:auto; margin-top:12px;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tempo</th>
+              <th>Âncora</th>
+              <th>Trecho do roteiro</th>
+              <th>Clipe</th>
+              <th>Descrição visual</th>
+              <th>Confiança</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for swap in sincronizacao_log.swaps_aplicados %}
+            <tr class="swap-row" data-posicao="{{ swap.posicao if swap.posicao is not none else '' }}"
+                title="{% if swap.posicao is not none %}Clique para ir até essa posição na timeline{% else %}Clipe não encontrado na timeline atual{% endif %}">
+              <td>
+                {% if swap.tempo_formatado %}
+                <code>{{ swap.tempo_formatado }}</code>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+                {% if swap.outras_ocorrencias %}
+                <div class="swap-row-outras text-muted">
+                  +{{ swap.outras_ocorrencias }} outra(s) posição(ões)
+                </div>
+                {% endif %}
+              </td>
+              <td><code>{{ swap.ancora_termo }}</code></td>
+              <td class="text-muted">{{ swap.texto_original|truncate(60) }}</td>
+              <td>#{{ swap.clipe_id }}</td>
+              <td>{{ swap.descricao_visual }}</td>
+              <td>{{ swap.confianca }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted" style="margin-bottom:0;">
+        {{ sincronizacao_log.ancoras_encontradas }} âncora(s) e {{ sincronizacao_log.clipes_descritos }}
+        clipe(s) analisados, nenhum swap aplicado.
+      </p>
+      {% endif %}
+    </details>
+  </div>
+  {% endif %}
+
+  <!-- Area 1: preview TTS + cursor -->
+  <div class="card" style="padding:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <audio id="tts-player" controls preload="none" style="flex:1; min-width:260px;">
+        <source src="{{ url_for('narracao_audio', projeto_id=projeto_id) }}" type="audio/mpeg">
+      </audio>
+      <span class="text-muted" style="font-size:12px; white-space:nowrap;">
+        <span id="tempo-corrente">00:00</span> / <span id="tempo-total">{{ duracao_total_formatada }}</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Area 2: timeline horizontal -->
+  <div class="card" style="padding:16px; margin-top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;">Timeline</h3>
+      <button id="btn-atualizar-preview" type="button" class="btn btn-secondary">
+        <i class="ph ph-arrow-clockwise"></i> Gerar preview em video
+      </button>
+    </div>
+    <video id="preview-player" controls preload="none" style="display:none; width:100%; max-height:220px; background:#000; margin-top:12px; border-radius:8px;"></video>
+    <p id="aviso-preview" class="text-muted" style="display:none; margin:8px 0 0;"></p>
+    <div id="timeline-scroll" style="overflow-x:auto; overflow-y:hidden; margin-top:12px; border-radius:8px; box-shadow:inset 0 0 0 1px var(--color-divider); position:relative;">
+      {% if regua_marcas %}
+      <div id="timeline-regua">
+        {% for marca in regua_marcas %}
+        <div class="regua-marca" style="left:{{ marca.left_px }}px;">{{ marca.tempo_formatado }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div id="timeline-track" style="display:flex; gap:4px; padding:8px; min-height:100px; width:max-content;">
+        {% if intro_info %}
+        <div class="timeline-fixo" draggable="false"
+             title="Intro (posição fixa) - {{ intro_info.nome_arquivo }}{% if intro_info.duracao_formatada %}, {{ intro_info.duracao_formatada }}{% endif %} - não pode ser movida, trocada nem removida aqui">
+          <i class="ph ph-lock-simple"></i>
+          <span>Intro</span>
+        </div>
+        {% endif %}
+        {% for clipe in timeline %}
+        <div class="timeline-clipe{% if clipe.duracao_aproximada %} timeline-clipe-aproximado{% endif %}" draggable="true"
+             data-posicao="{{ clipe.posicao }}"
+             data-clipe-id="{{ clipe.clipe_id }}"
+             data-inicio-s="{{ clipe.inicio_slot_s }}"
+             data-fim-s="{{ clipe.fim_slot_s }}"
+             title="{% if clipe.duracao_aproximada %}Duração aproximada (fallback) - timestamp estimado{% endif %}"
+             style="flex:none; width:{{ clipe.largura_px }}px; cursor:grab; border-radius:6px; overflow:hidden; box-shadow:inset 0 0 0 1px var(--color-divider); position:relative;">
+          <img src="{{ url_for('thumb_clipe', projeto_id=projeto_id, clipe_id=clipe.clipe_id) }}"
+               style="width:100%; height:64px; object-fit:cover; display:block; pointer-events:none;" alt="" loading="lazy">
+          <div class="text-muted" style="font-size:10px; padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            #{{ clipe.clipe_id }} · {% if clipe.duracao_aproximada %}~{% endif %}{{ clipe.tempo_formatado }}
+          </div>
+        </div>
+        {% endfor %}
+        {% if ending_info %}
+        <div class="timeline-fixo" draggable="false"
+             title="Ending (posição fixa) - {{ ending_info.nome_arquivo }}{% if ending_info.duracao_formatada %}, {{ ending_info.duracao_formatada }}{% endif %} - não pode ser movido, trocado nem removido aqui">
+          <i class="ph ph-lock-simple"></i>
+          <span>Ending</span>
+        </div>
+        {% endif %}
+      </div>
+      <div id="timeline-cursor" style="position:absolute; top:0; bottom:0; width:2px; background:var(--color-accent); pointer-events:none; left:8px;"></div>
+    </div>
+    {% if not timeline %}
+      <p class="text-muted">Nenhum clipe encontrado em clipes/indice.json.</p>
+    {% endif %}
+  </div>
+
+  <!-- Area 3: banco de clipes -->
+  <div class="card" style="padding:16px; margin-top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <h3 style="margin:0;">Banco de clipes (<span id="total-clipes">{{ banco|length }}</span>)</h3>
+      <input type="text" id="busca-clipes" placeholder="Buscar por descricao..." class="input" style="max-width:260px;">
+    </div>
+    <p id="aviso-reorg" class="text-muted" style="display:none; margin:10px 0 0;"></p>
+    <div id="banco-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; margin-top:12px; max-height:420px; overflow-y:auto;">
+      {% for clipe in banco %}
+      <div class="banco-clipe" draggable="true" data-posicao="{{ clipe.posicao }}"
+           data-descricao="{{ clipe.descricao_busca }}"
+           style="cursor:grab; border-radius:6px; overflow:hidden; box-shadow:inset 0 0 0 1px var(--color-divider);">
+        <img src="{{ url_for('thumb_clipe', projeto_id=projeto_id, clipe_id=clipe.clipe_id) }}"
+             style="width:100%; aspect-ratio:16/9; object-fit:cover; display:block; pointer-events:none;" alt="" loading="lazy">
+        <div style="padding:4px 6px; font-size:11px;">
+          <div class="text-muted">#{{ clipe.clipe_id }}</div>
+          {% if clipe.descricao_vision %}
+          <div class="text-muted" style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ clipe.descricao_vision }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  window.BrollFoundryReorganizar = {
+    projetoId: {{ projeto_id | tojson }},
+    urlReordenar: {{ url_for('reordenar_clipes', projeto_id=projeto_id) | tojson }},
+    urlPreview: {{ url_for('preview_video', projeto_id=projeto_id) | tojson }},
+    urlMontar: {{ url_for('montar_video_rota', projeto_id=projeto_id) | tojson }},
+    urlStatus: {{ url_for('status', projeto_id=projeto_id) | tojson }},
+    pxPorSegundo: {{ px_por_segundo | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='reorganizar_clipes.js') }}"></script>
+{% endblock %}

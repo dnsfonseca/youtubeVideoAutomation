@@ -1,0 +1,50 @@
+# Ambiente Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Configuracao sensivel
+.env
+.env.local
+.env.production
+
+# Marca d'agua do canal (upload do usuario, global - CLAUDE.md secao 5.8)
+config/
+
+# Dados de projetos (podem ser gigabytes)
+projetos/
+
+# Uploads temporarios
+uploads/
+
+# Cache de whisper
+~/.cache/whisper/
+
+# Ferramentas dev
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema operacional
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Node (se houver algum experimento futuro)
+node_modules/
+
+# Docs - arquivos temporarios de rascunho
+docs/rascunho/
+docs/*.tmp
+
+# Backup files
+*.bak
+*~

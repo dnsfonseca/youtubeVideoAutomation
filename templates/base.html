@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Broll Foundry{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='design_system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <style>
+    body { margin: 0; }
+    @keyframes bf-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(181,171,252,0.45); } 50% { box-shadow: 0 0 0 7px rgba(181,171,252,0); } }
+    @keyframes bf-blink { 0%, 100% { opacity: 1 } 50% { opacity: 0.25 } }
+
+    .bf-layout { display: grid; grid-template-columns: 214px 1fr; min-height: 100vh; }
+    .bf-sidebar {
+      display: flex; flex-direction: column; gap: 18px; padding: 20px 14px;
+      background: #13141f; box-shadow: inset -1px 0 0 var(--color-divider);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .bf-sidebar-brand { display: flex; align-items: center; gap: 9px; padding: 0 6px 2px; text-decoration: none; }
+    .bf-sidebar-brand:hover { text-decoration: none; }
+    .bf-sidebar-mark {
+      width: 22px; height: 22px; flex: none; border-radius: 6px; border: 1px solid var(--color-accent);
+      display: grid; place-items: center;
+    }
+    .bf-sidebar-mark span { width: 7px; height: 7px; border-radius: 2px; background: var(--color-accent); }
+    .bf-sidebar-brand-nome { font-family: var(--font-heading); font-weight: 500; font-size: 15px; letter-spacing: -0.01em; color: var(--color-text); }
+
+    .bf-nav { display: flex; flex-direction: column; gap: 2px; }
+    .bf-nav a {
+      display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: var(--radius-sm);
+      font-size: 13.5px; text-decoration: none; color: var(--color-neutral-400);
+    }
+    .bf-nav a:hover { text-decoration: none; background: color-mix(in srgb, var(--color-text) 7%, transparent); color: var(--color-text); }
+    .bf-nav a.ativo {
+      color: var(--color-text);
+      background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 40%, transparent);
+    }
+    .bf-nav a i { font-size: 16px; opacity: 0.9; }
+
+    .bf-sidebar-rodape { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 6px; }
+    .bf-sidebar-rodape-titulo { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); }
+    .bf-sidebar-rodape-meta { font-size: 11px; color: var(--color-neutral-600); line-height: 1.45; }
+
+    .bf-main { min-width: 0; display: flex; flex-direction: column; }
+    .bf-header {
+      position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 16px;
+      padding: 14px 28px; background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+      backdrop-filter: blur(8px); box-shadow: inset 0 -1px 0 var(--color-divider);
+      flex-wrap: wrap;
+    }
+    .bf-header-textos { min-width: 0; }
+    .bf-header-crumb { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); }
+    .bf-header-titulo { font-family: var(--font-heading); font-weight: 500; font-size: 19px; letter-spacing: -0.015em; overflow-wrap: anywhere; }
+    .bf-header-acoes { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .bf-conteudo { flex: 1; }
+
+    @media (max-width: 860px) {
+      .bf-layout { grid-template-columns: 1fr; }
+      .bf-sidebar { position: static; height: auto; flex-direction: row; align-items: center; flex-wrap: wrap; }
+      .bf-nav { flex-direction: row; flex-wrap: wrap; }
+      .bf-sidebar-rodape { margin-top: 0; }
+    }
+  </style>
+  {% block head_extra %}{% endblock %}
+</head>
+<body{% block body_attrs %}{% endblock %}>
+{% if banner_ffmpeg_ausente %}
+<div class="banner banner-perigo">
+  <span>
+    <strong>ffmpeg não encontrado no PATH.</strong>
+    Downloads de vídeo-fonte não vão funcionar. Rode
+    <code>iniciar.bat --instalar-deps</code> ou veja como instalar em
+    <a href="https://www.gyan.dev/ffmpeg/builds/" target="_blank" rel="noopener">gyan.dev/ffmpeg/builds</a>.
+  </span>
+</div>
+{% endif %}
+{% if banner_ambiente_incompativel %}
+<div class="banner banner-perigo">
+  <span>
+    <strong>Ambiente incompatível.</strong>
+    {{ ambiente_compatibilidade.mensagem }}
+    O Broll Foundry requer GPU NVIDIA com 4GB+ VRAM e driver CUDA 12+.
+    Veja detalhes em <a href="{{ url_for('ajustes') }}">Ajustes</a> ou no
+    <code>LEIAME.md</code>.
+  </span>
+</div>
+{% endif %}
+{% with mensagens_flash = get_flashed_messages(with_categories=true) %}
+  {% for categoria, mensagem in mensagens_flash %}
+  <div class="banner {{ 'banner-perigo' if categoria == 'erro' else 'banner-aviso' }}">
+    <span>{{ mensagem }}</span>
+  </div>
+  {% endfor %}
+{% endwith %}
+{% for lib in banner_libs_desatualizadas %}
+<div class="banner banner-aviso">
+  <span>
+    Sua versão de <strong>{{ lib.nome }}</strong> tem {{ lib.dias }} dias.
+    Downloads podem falhar. Atualize com: <code>iniciar.bat --instalar-deps</code>
+  </span>
+  <form method="post" action="{{ url_for('dispensar_banner', nome_lib=lib.nome) }}" class="banner-fechar-form">
+    <button type="submit" class="banner-fechar" aria-label="Fechar aviso">&times;</button>
+  </form>
+</div>
+{% endfor %}
+
+<div class="bf-layout">
+  <aside class="bf-sidebar">
+    <a class="bf-sidebar-brand" href="{{ url_for('home') }}">
+      <span class="bf-sidebar-mark"><span></span></span>
+      <span class="bf-sidebar-brand-nome">Broll Foundry</span>
+    </a>
+
+    <nav class="bf-nav">
+      <a href="{{ url_for('home') }}" class="{{ 'ativo' if request.endpoint == 'home' else '' }}"><i class="ph ph-folders"></i><span>Projetos</span></a>
+      <a href="{{ url_for('novo') }}" class="{{ 'ativo' if request.endpoint == 'novo' else '' }}"><i class="ph ph-plus-circle"></i><span>Novo projeto</span></a>
+      <a href="{{ url_for('ajustes') }}" class="{{ 'ativo' if request.endpoint == 'ajustes' else '' }}"><i class="ph ph-sliders"></i><span>Ajustes</span></a>
+      <a href="{{ url_for('sobre') }}" class="{{ 'ativo' if request.endpoint == 'sobre' else '' }}"><i class="ph ph-info"></i><span>Sobre</span></a>
+    </nav>
+
+    <div class="bf-sidebar-rodape">
+      <div class="bf-sidebar-rodape-titulo">Ambiente</div>
+      <div class="bf-sidebar-rodape-meta">
+        {% if ambiente_gpu and ambiente_gpu.modelo %}{{ ambiente_gpu.modelo }}<br>{% endif %}
+        v{{ ambiente_versao if ambiente_versao else '0.1.0-mvp' }}
+      </div>
+    </div>
+  </aside>
+
+  <main class="bf-main">
+    <header class="bf-header">
+      <div class="bf-header-textos">
+        <div class="bf-header-crumb">{% block breadcrumb %}Broll Foundry{% endblock %}</div>
+        <div class="bf-header-titulo">{% block titulo_pagina %}{% endblock %}</div>
+      </div>
+      <div class="bf-header-acoes">
+        {% block acoes_header %}{% endblock %}
+      </div>
+    </header>
+
+    {% block pipeline %}{% endblock %}
+
+    <div class="bf-conteudo">
+      {% block conteudo %}{% endblock %}
+    </div>
+  </main>
+</div>
+<script src="{{ url_for('static', filename='confirm_modal.js') }}"></script>
+</body>
+</html>

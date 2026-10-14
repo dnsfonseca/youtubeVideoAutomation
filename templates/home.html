@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block titulo %}Projetos - Broll Foundry{% endblock %}
+{% block breadcrumb %}Broll Foundry{% endblock %}
+{% block titulo_pagina %}Projetos{% endblock %}
+{% block acoes_header %}
+  <a class="btn btn-primary" href="{{ url_for('novo') }}"><i class="ph ph-plus"></i>Novo projeto</a>
+{% endblock %}
+{% block conteudo %}
+  <div style="padding:22px 28px 40px;">
+
+    {% if mensagem %}
+      <p class="aviso">{{ mensagem }}</p>
+    {% endif %}
+
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1px; margin-bottom:26px; border-radius:var(--radius-md); overflow:hidden; background:var(--color-divider);">
+      <div style="background:var(--color-bg); padding:14px 16px;">
+        <div style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--color-neutral-600);">Total de projetos</div>
+        <div style="font-family:var(--font-heading); font-weight:500; font-size:26px; letter-spacing:-0.02em; margin-top:3px;">{{ stats.total }}</div>
+      </div>
+      <div style="background:var(--color-bg); padding:14px 16px;">
+        <div style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--color-neutral-600);">Em andamento</div>
+        <div style="font-family:var(--font-heading); font-weight:500; font-size:26px; letter-spacing:-0.02em; margin-top:3px;">{{ stats.ativos }}</div>
+      </div>
+      <div style="background:var(--color-bg); padding:14px 16px;">
+        <div style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--color-neutral-600);">Concluídos no mês</div>
+        <div style="font-family:var(--font-heading); font-weight:500; font-size:26px; letter-spacing:-0.02em; margin-top:3px;">{{ stats.concluidos_no_mes }}</div>
+      </div>
+      <div style="background:var(--color-bg); padding:14px 16px;">
+        <div style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--color-neutral-600);">Custo do mês</div>
+        <div style="font-family:var(--font-heading); font-weight:500; font-size:26px; letter-spacing:-0.02em; margin-top:3px;">{{ stats.custo_total_brl_formatado }}</div>
+      </div>
+    </div>
+
+    {% if projetos %}
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+        <div style="position:relative; width:280px;">
+          <i class="ph ph-magnifying-glass" style="position:absolute; left:9px; top:9px; font-size:15px; color:var(--color-neutral-600);"></i>
+          <input class="input" id="busca-projeto" placeholder="Buscar projeto" style="padding-left:30px;">
+        </div>
+        <span class="text-muted" style="font-size:12px; margin-left:auto;">{{ projetos|length }} projeto{{ 's' if projetos|length != 1 else '' }}</span>
+      </div>
+
+      {# Texto do badge vem do filtro label_status (scripts/labels_ui.py) -
+         nao duplicar tradução aqui. Este dict so' controla a cor/estilo
+         (cosmetico), por chave de status tecnica. #}
+      {% set badge_classes = {
+        "pendente": "status-badge-pill status-badge-amarelo",
+        "em_andamento": "status-badge-pill status-badge-ambar",
+        "aguardando_revisao": "status-badge-pill status-badge-ambar",
+        "aguardando_audio": "status-badge-pill status-badge-amarelo",
+        "aguardando_geracao_clipes": "status-badge-pill status-badge-amarelo",
+        "aguardando_legendas": "status-badge-pill status-badge-amarelo",
+        "aguardando_reorganizacao": "status-badge-pill status-badge-amarelo",
+        "aguardando_thumbnail": "status-badge-pill status-badge-amarelo",
+        "concluido": "status-badge-pill status-badge-verde",
+        "erro": "status-badge-pill status-badge-vermelho",
+        "falhou": "status-badge-pill status-badge-vermelho",
+      } %}
+
+      <table class="table" id="tabela-projetos">
+        <thead>
+          <tr><th style="width:36%;">Projeto</th><th>Perfil</th><th>Criado</th><th style="text-align:right;">Estado</th></tr>
+        </thead>
+        <tbody>
+          {% for projeto in projetos %}
+            {% set destino = 'revisar_roteiro' if projeto.status in ("aguardando_revisao", "aguardando_audio") else ('concluido' if projeto.status == "concluido" else 'status') %}
+            <tr class="linha-projeto" data-nome="{{ projeto.nome|lower }}" style="cursor:pointer;" onclick="window.location='{{ url_for(destino, projeto_id=projeto.nome) }}'">
+              <td>
+                <div style="font-family:var(--font-heading); font-weight:500; overflow-wrap:anywhere;">{{ projeto.nome }}</div>
+                <div style="font-size:11px; color:var(--color-neutral-600);">
+                  {% if projeto.criado_em %}Criado em {{ projeto.criado_em.strftime("%d/%m/%Y %H:%M") }}{% else %}Data de criação desconhecida{% endif %}
+                </div>
+              </td>
+              <td style="color:var(--color-neutral-400); font-size:13px;">{{ projeto.perfil or "—" }}</td>
+              <td style="color:var(--color-neutral-500); font-size:13px;">
+                {% if projeto.criado_em %}{{ projeto.criado_em.strftime("%d/%m/%Y") }}{% else %}—{% endif %}
+              </td>
+              <td style="text-align:right;">
+                {% if projeto.status in badge_classes %}
+                  <span class="{{ badge_classes[projeto.status] }}">{{ projeto.status|label_status }}</span>
+                {% else %}
+                  {# Status sem entrada em badge_classes (novo/desconhecido): nunca
+                     renderizar badge vazio - fallback neutro sempre com o label
+                     amigavel de labels_ui.py (ou a chave crua, se nem isso existir). #}
+                  <span class="status-badge-pill status-badge-neutro" title="Status: {{ projeto.status or 'desconhecido' }}">{{ (projeto.status or "desconhecido")|label_status }}</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Nenhum projeto encontrado ainda.</p>
+    {% endif %}
+  </div>
+
+  <script>
+    (function () {
+      var busca = document.getElementById("busca-projeto");
+      var tabela = document.getElementById("tabela-projetos");
+      if (!busca || !tabela) return;
+      busca.addEventListener("input", function () {
+        var termo = busca.value.trim().toLowerCase();
+        tabela.querySelectorAll(".linha-projeto").forEach(function (linha) {
+          linha.style.display = linha.dataset.nome.indexOf(termo) === -1 ? "none" : "";
+        });
+      });
+    })();
+  </script>
+{% endblock %}

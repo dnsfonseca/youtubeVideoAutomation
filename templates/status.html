@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% from '_pipeline_horizontal.html' import renderizar_pipeline %}
+{% block titulo %}Status - {{ projeto_id }}{% endblock %}
+{% block breadcrumb %}Projetos / {{ projeto_id }}{% endblock %}
+{% block titulo_pagina %}{{ projeto_id }}{% endblock %}
+{% block pipeline %}
+  {% if pipeline_steps %}
+  {% call renderizar_pipeline(pipeline_steps) %}
+    <a class="btn btn-secondary" href="{{ url_for('home') }}"><i class="ph ph-arrow-left"></i>Voltar aos projetos</a>
+  {% endcall %}
+  {% else %}
+  <div class="pipeline-horizontal">
+    <div class="pipeline-acoes">
+      <a class="btn btn-secondary" href="{{ url_for('home') }}"><i class="ph ph-arrow-left"></i>Voltar aos projetos</a>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}
+{% block conteudo %}
+  <div style="display:flex; flex-wrap:wrap; align-items:flex-start;">
+
+    <!-- Coluna 1: conteudo principal -->
+    <section style="flex:1 1 340px; min-width:0; padding:22px 26px 40px;">
+      {% if aviso %}
+        <p class="aviso">{{ aviso }}</p>
+      {% endif %}
+
+      {% if not estado.tem_dados %}
+        <div class="banner banner-aviso" style="margin-bottom: 16px;">
+          <i class="ph ph-warning"></i>
+          <strong>O estado deste projeto se perdeu</strong> — o arquivo que guarda
+          em que etapa o pipeline estava (job.json) está ausente ou corrompido.
+          Os arquivos já produzidos continuam em disco (veja "Artefatos" ao
+          lado){% if estagio_reconstruivel %}; é possível reconstruir o estado
+          a partir deles{% endif %}.
+          {% if estagio_reconstruivel %}
+          <div style="margin-top:10px;">
+            <button type="button" id="btn-reconstruir-estado" class="btn btn-secondary"
+                    data-url="{{ url_for('reconstruir_estado', projeto_id=projeto_id) }}">
+              <i class="ph ph-arrow-clockwise"></i> Reconstruir estado a partir dos artefatos
+            </button>
+            <span id="status-reconstruir-estado" class="text-muted" style="font-size:12px; margin-left:8px;"></span>
+          </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <!-- Bloco A: cabecalho do projeto -->
+      <div class="status-cabecalho">
+        <h1>{{ projeto_id }}</h1>
+        <p class="status-meta">
+          {% if estado.data_criacao %}Criado em {{ estado.data_criacao }}{% else %}Data de criação não disponível{% endif %}
+          {%- if estado.data_fim %}
+            {{ " · " }}{% if estado.status == "erro" %}Erro em{% else %}Concluído em{% endif %} {{ estado.data_fim }}
+          {%- endif %}
+        </p>
+      </div>
+
+      <!-- Bloco B: estado da etapa atual -->
+      <div class="card" id="status-card" data-projeto-id="{{ projeto_id }}">
+        <p id="status-etapa">Etapa: {{ estado.etapa|label_etapa if estado.etapa else "-" }}</p>
+        <p id="status-texto">Status: {{ estado.status|label_status if estado.status else "sem dados persistidos" }}</p>
+
+        <div class="barra-progresso{% if estado.status in ("concluido", "erro") %} oculto{% endif %}" id="barra-progresso-container">
+          <div class="barra-progresso-preenchimento" id="barra-preenchimento"
+               style="width: {{ estado.pct or 0 }}%;"></div>
+        </div>
+        <p id="status-detalhe">{{ estado.detalhe or "" }}</p>
+
+        <p id="status-proxima-etapa" class="aviso{% if not estado.proxima_etapa %} oculto{% endif %}">
+          {{ estado.proxima_etapa_mensagem or "" }}
+        </p>
+
+        <p id="status-erro" class="erro-destaque{% if estado.status != "erro" %} oculto{% endif %}">
+          {{ estado.mensagem_usuario or "Erro (sem detalhes)." }}
+        </p>
+
+        <p id="status-aguardando-revisao" class="aviso{% if estado.status != "aguardando_revisao" %} oculto{% endif %}">
+          Roteiro gerado! <a id="link-revisar-roteiro" class="link-revisar-roteiro"
+            href="{{ url_for('revisar_roteiro', projeto_id=projeto_id) }}">Revisar roteiro &rarr;</a>
+        </p>
+
+        <p id="status-aguardando-audio" class="aviso{% if estado.status != "aguardando_audio" %} oculto{% endif %}">
+          Roteiro aprovado! <a id="link-configurar-audio" class="link-revisar-roteiro"
+            href="{{ url_for('revisar_roteiro', projeto_id=projeto_id) }}">Escolher origem do áudio &rarr;</a>
+        </p>
+
+        <p id="status-aguardando-geracao-clipes" class="aviso{% if estado.status != "aguardando_geracao_clipes" %} oculto{% endif %}">
+          Áudio gerado — próxima etapa: geração dos clipes.
+          <a class="link-revisar-roteiro link-desabilitado" title="Geração de clipes roda automaticamente após o áudio; use o retry manual se falhou.">
+            Gerar clipes &rarr;
+          </a>
+        </p>
+
+        <p id="status-aguardando-legendas" class="aviso{% if estado.status != "aguardando_legendas" %} oculto{% endif %}">
+          Clipes renderizados — montando o vídeo final automaticamente (legendas + concatenação + áudio)...
+        </p>
+
+        <p id="status-aguardando-reorganizacao" class="aviso{% if estado.status != "aguardando_reorganizacao" %} oculto{% endif %}">
+          Clipes prontos! Revise/ajuste a ordem antes da montagem final.
+          <a id="link-reorganizar-clipes" class="link-revisar-roteiro"
+            href="{{ url_for('reorganizar_clipes', projeto_id=projeto_id) }}">Reorganizar clipes &rarr;</a>
+        </p>
+
+        <p id="status-concluido" class="aviso{% if estado.status != "concluido" %} oculto{% endif %}">
+          Vídeo final pronto!
+          <a id="link-concluido" class="link-revisar-roteiro"
+            href="{{ url_for('concluido', projeto_id=projeto_id) }}">Ver vídeo &rarr;</a>
+        </p>
+
+        <p id="status-aguardando-thumbnail-ok" class="aviso{% if estado.status != "aguardando_thumbnail" or estado.etapa7_falhou %} oculto{% endif %}">
+          Vídeo final pronto e thumbnail preparada! Revise os candidatos e escolha o template.
+          <a id="link-revisar-thumbnail" class="link-revisar-roteiro"
+            href="{{ url_for('tela_thumbnail', projeto_id=projeto_id) }}">Revisar thumbnail &rarr;</a>
+        </p>
+
+        <div id="status-aguardando-thumbnail-falhou" class="erro-destaque{% if estado.status != "aguardando_thumbnail" or not estado.etapa7_falhou %} oculto{% endif %}">
+          <p>A preparação automática da thumbnail falhou. {{ estado.mensagem_usuario or "" }}
+          O vídeo final está pronto — você pode completar a thumbnail manualmente (upload de foto própria) ou tentar gerar os candidatos de novo.</p>
+          <button type="button" id="btn-tentar-thumbnail" class="btn btn-secondary" data-url="{{ url_for('gerar_thumbnail_rota', projeto_id=projeto_id) }}">
+            <i class="ph ph-arrow-clockwise"></i> Tentar novamente
+          </button>
+          <a class="link-revisar-roteiro" href="{{ url_for('tela_thumbnail', projeto_id=projeto_id) }}">Revisar manualmente &rarr;</a>
+        </div>
+      </div>
+
+      <!-- Bloco C: links utilizados -->
+      <div class="card status-bloco">
+        <h3>Links dos vídeos-fonte</h3>
+        {% if links %}
+          <ul class="lista-links">
+            {% for link in links %}
+              <li><a class="link-fonte" href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a></li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Nenhum link registrado.</p>
+        {% endif %}
+      </div>
+
+      <!-- Bloco D: arquivos gerados -->
+      <div class="card status-bloco">
+        <h3>Arquivos baixados</h3>
+        <div id="arquivos-baixados-lista">
+          {% if fontes_baixadas %}
+            <ul class="lista-arquivos">
+              {% for fonte in fontes_baixadas %}
+                <li>{{ fonte.arquivo }}{% if fonte.duracao_formatada %} — {{ fonte.duracao_formatada }}{% endif %} ({{ "enviado" if fonte.origem == "upload" else "baixado" }})</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>{{ mensagem_arquivos }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Bloco E: log -->
+      <details id="status-log-detalhes" class="status-bloco">
+        <summary>Log detalhado</summary>
+        <pre id="status-log">{% if estado.log %}{{ estado.log|join("\n") }}{% elif estado.log_persistido %}{{ estado.log_persistido }}{% else %}Log não persistido.{% endif %}</pre>
+      </details>
+
+      <script src="{{ url_for('static', filename='pipeline_render.js') }}"></script>
+      <script src="{{ url_for('static', filename='status.js') }}"></script>
+    </section>
+
+    <!-- Coluna 2: artefatos -->
+    <aside style="flex:1 1 220px; max-width:260px; padding:22px 22px 40px; box-shadow:inset 1px 0 0 var(--color-divider); display:flex; flex-direction:column; gap:16px;">
+      <div>
+        <h6 style="margin:0 0 8px; color:var(--color-neutral-500);">Artefatos</h6>
+        <div id="artefatos-lista">
+          {% if artefatos %}
+            <div style="display:flex; flex-direction:column; gap:5px; font-size:12px;">
+              {% for artefato in artefatos %}
+                <div style="display:flex; align-items:center; gap:8px; color:var(--color-neutral-400);">
+                  <i class="ph ph-file" style="font-size:14px; color:var(--color-neutral-600);"></i>
+                  <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ artefato.nome }}</span>
+                  <span style="margin-left:auto; color:var(--color-neutral-700); flex:none;">{{ artefato.tamanho }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted" style="font-size:12px;">Nenhum artefato gerado ainda.</p>
+          {% endif %}
+        </div>
+      </div>
+    </aside>
+  </div>
+{% endblock %}

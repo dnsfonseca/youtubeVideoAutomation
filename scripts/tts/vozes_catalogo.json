@@ -1,0 +1,161 @@
+{
+  "google": {
+    "en-US": [
+      {
+        "id": "en-US-Wavenet-A",
+        "genero": "masculina",
+        "descricao": "Tom neutro e claro. Versátil pra qualquer perfil.",
+        "recomendada_para": ["atualidades_narrativas"],
+        "amostra_url": null
+      },
+      {
+        "id": "en-US-Wavenet-B",
+        "genero": "masculina",
+        "descricao": "Voz jovem e enérgica. Boa pra ritmo mais dinâmico.",
+        "recomendada_para": [],
+        "amostra_url": null
+      },
+      {
+        "id": "en-US-Wavenet-C",
+        "genero": "feminina",
+        "descricao": "Tom neutro e profissional. Adequada pra conteúdo informativo.",
+        "recomendada_para": ["atualidades_narrativas"],
+        "amostra_url": null
+      },
+      {
+        "id": "en-US-Wavenet-D",
+        "genero": "masculina",
+        "descricao": "Grave e autoritativa. Ideal pra true crime e documentários sérios.",
+        "recomendada_para": ["truecrime", "historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "en-US-Wavenet-E",
+        "genero": "feminina",
+        "descricao": "Voz calma e articulada. Boa pra narrativas históricas.",
+        "recomendada_para": ["historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "en-US-Wavenet-F",
+        "genero": "feminina",
+        "descricao": "Calorosa e envolvente. Boa pra atualidades narrativas e histórias emotivas.",
+        "recomendada_para": ["atualidades_narrativas", "historia"],
+        "amostra_url": null
+      }
+    ],
+    "en-GB": [
+      {
+        "id": "en-GB-Wavenet-B",
+        "genero": "masculina",
+        "descricao": "Sotaque britânico masculino. Autoritativo e refinado.",
+        "recomendada_para": ["truecrime", "historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "en-GB-Wavenet-D",
+        "genero": "masculina",
+        "descricao": "Sotaque britânico neutro. Tom sério e profissional.",
+        "recomendada_para": ["truecrime", "atualidades_narrativas"],
+        "amostra_url": null
+      },
+      {
+        "id": "en-GB-Wavenet-A",
+        "genero": "feminina",
+        "descricao": "Sotaque britânico feminino. Tom envolvente pra narrativas.",
+        "recomendada_para": ["historia", "atualidades_narrativas"],
+        "amostra_url": null
+      },
+      {
+        "id": "en-GB-Wavenet-F",
+        "genero": "feminina",
+        "descricao": "Sotaque britânico moderno. Boa pra documentários contemporâneos.",
+        "recomendada_para": ["atualidades_narrativas"],
+        "amostra_url": null
+      }
+    ],
+    "pt-BR": [
+      {
+        "id": "pt-BR-Wavenet-B",
+        "genero": "masculina",
+        "descricao": "Voz masculina brasileira grave. Adequada pra true crime e documentários.",
+        "recomendada_para": ["truecrime", "historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "pt-BR-Wavenet-C",
+        "genero": "masculina",
+        "descricao": "Voz masculina brasileira jovem. Boa pra ritmo dinâmico.",
+        "recomendada_para": ["atualidades_narrativas"],
+        "amostra_url": null
+      },
+      {
+        "id": "pt-BR-Wavenet-A",
+        "genero": "feminina",
+        "descricao": "Voz feminina brasileira calorosa. Adequada pra narrativas envolventes.",
+        "recomendada_para": ["atualidades_narrativas", "historia"],
+        "amostra_url": null
+      }
+    ],
+    "es": [
+      {
+        "id": "es-ES-Wavenet-B",
+        "genero": "masculina",
+        "descricao": "Espanhol europeu masculino. Tom sério e autoritativo.",
+        "recomendada_para": ["truecrime", "historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "es-ES-Wavenet-C",
+        "genero": "feminina",
+        "descricao": "Espanhol europeu feminino. Tom neutro e claro.",
+        "recomendada_para": ["atualidades_narrativas", "historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "es-US-Wavenet-B",
+        "genero": "masculina",
+        "descricao": "Espanhol latino masculino. Adequado pra público latino-americano.",
+        "recomendada_para": ["truecrime", "atualidades_narrativas"],
+        "amostra_url": null
+      },
+      {
+        "id": "es-US-Wavenet-A",
+        "genero": "feminina",
+        "descricao": "Espanhol latino feminino. Tom envolvente e natural.",
+        "recomendada_para": ["atualidades_narrativas", "historia"],
+        "amostra_url": null
+      }
+    ],
+    "de": [
+      {
+        "id": "de-DE-Wavenet-B",
+        "genero": "masculina",
+        "descricao": "Alemão masculino. Tom sério e articulado.",
+        "recomendada_para": ["truecrime", "historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "de-DE-Wavenet-D",
+        "genero": "masculina",
+        "descricao": "Alemão masculino jovem. Boa pra ritmo dinâmico.",
+        "recomendada_para": ["atualidades_narrativas"],
+        "amostra_url": null
+      },
+      {
+        "id": "de-DE-Wavenet-A",
+        "genero": "feminina",
+        "descricao": "Alemão feminino. Tom claro e profissional.",
+        "recomendada_para": ["atualidades_narrativas", "historia"],
+        "amostra_url": null
+      },
+      {
+        "id": "de-DE-Wavenet-C",
+        "genero": "feminina",
+        "descricao": "Alemão feminino jovem. Adequada pra conteúdo mais leve.",
+        "recomendada_para": [],
+        "amostra_url": null
+      }
+    ]
+  }
+}

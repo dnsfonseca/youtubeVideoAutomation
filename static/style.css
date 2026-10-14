@@ -1,0 +1,1242 @@
+/* Camada de cola do Broll Foundry sobre o design system Nocturne
+   (static/design_system.css). Mantem os NOMES de classe legados que
+   static/status.js, static/revisao.js, static/novo_projeto.js e a suite
+   de testes dependem - so remapeia os valores visuais pros tokens
+   Nocturne. Carregar DEPOIS de design_system.css. */
+
+:root {
+  --cor-fundo: var(--color-bg);
+  --cor-superficie: var(--color-surface);
+  --cor-input-fundo: #1b1d29;
+  --cor-texto: var(--color-text);
+  --cor-texto-secundario: var(--color-neutral-500);
+  --cor-borda: var(--color-divider);
+  --cor-acento: var(--color-accent);
+  --cor-acento-hover: var(--color-accent-2);
+  --cor-perigo-fundo: color-mix(in srgb, #d4664f 16%, transparent);
+  --cor-perigo-borda: color-mix(in srgb, #d4664f 45%, transparent);
+  --cor-perigo-texto: #e08a76;
+  --cor-aviso-fundo: color-mix(in srgb, #d9b062 14%, transparent);
+  --cor-aviso-borda: color-mix(in srgb, #d9b062 35%, transparent);
+  --cor-aviso-texto: #d9b062;
+  --cor-sucesso-fundo: var(--color-accent-800);
+  --cor-sucesso-borda: var(--color-accent-700);
+  --cor-sucesso-texto: var(--color-accent-100);
+
+  --raio-card: var(--radius-md);
+  --raio-botao: var(--radius-md);
+  --raio-input: var(--radius-sm);
+
+  --fonte: var(--font-body);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--fonte);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--cor-texto);
+  background: var(--cor-fundo);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  color: var(--cor-texto);
+}
+
+/* Scrollbar customizada */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cor-borda) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--cor-borda);
+  border-radius: 8px;
+  border: 2px solid var(--cor-fundo);
+}
+
+/* Cards */
+
+.card {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-card);
+  padding: 1.5rem;
+}
+
+/* Formularios */
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 1rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.campo:last-of-type {
+  margin-bottom: 0;
+}
+
+label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--cor-texto-secundario);
+}
+
+input, select, textarea {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--cor-texto);
+  background: var(--cor-input-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-input);
+  outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--cor-acento);
+}
+
+textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Botoes */
+
+.botao,
+button[type="submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.6rem 1.2rem;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 0.9rem;
+  border-radius: var(--raio-botao);
+  text-decoration: none;
+  border: 1px solid transparent;
+  margin-top: 1.5rem;
+}
+
+.botao,
+.botao-primario,
+button[type="submit"] {
+  background: transparent;
+  color: var(--cor-acento);
+  border-color: var(--cor-acento);
+}
+
+.botao:hover,
+.botao-primario:hover,
+button[type="submit"]:hover {
+  background: color-mix(in srgb, var(--cor-acento) 12%, transparent);
+}
+
+.botao-secundario {
+  background: transparent;
+  color: var(--cor-texto);
+  border: 1px solid var(--cor-borda);
+}
+
+.botao-secundario:hover {
+  background: color-mix(in srgb, var(--cor-texto) 7%, transparent);
+}
+
+/* Links */
+
+a {
+  color: var(--cor-acento);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Lista / cards de projeto (fallback simples; a tela home usa .table
+   como layout principal - ver home.html) */
+
+.lista-projetos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-projeto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-projeto:hover {
+  border-color: var(--cor-acento);
+  text-decoration: none;
+}
+
+.card-projeto-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.card-projeto-nome {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--cor-texto);
+}
+
+.card-projeto-data {
+  font-size: 0.85rem;
+  color: var(--cor-texto-secundario);
+}
+
+.status-badge {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-badge-vazio {
+  background: var(--cor-borda);
+}
+
+/* Mensagens */
+
+.erro {
+  color: var(--cor-perigo-texto);
+}
+
+/* Erro de validacao inline junto do bloco de origem do audio (ex: botao
+   Aprovar, que agora vive na barra sticky de pipeline, nao aqui) -
+   alternativa a alert() do navegador, que bloqueia a thread de UI e nao
+   caberia num fluxo com varios campos pra revisar. */
+.erro-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cor-perigo-texto);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.aviso {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  color: var(--cor-texto);
+  padding: 0.75rem 1rem;
+  border-radius: var(--raio-card);
+  margin-bottom: 1rem;
+}
+
+/* Banners de robustez (CLAUDE.md secao 18.2) - topo de todas as paginas */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem;
+}
+
+.banner code {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--raio-input);
+}
+
+.banner-perigo {
+  background: color-mix(in srgb, #d4664f 14%, var(--color-bg));
+  border-bottom: 1px solid var(--cor-perigo-borda);
+  color: var(--cor-perigo-texto);
+}
+
+.banner-aviso {
+  background: color-mix(in srgb, #d9b062 10%, var(--color-bg));
+  border-bottom: 1px solid var(--cor-aviso-borda);
+  color: var(--cor-aviso-texto);
+}
+
+.banner-fechar-form {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.banner-fechar {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.1rem 0.4rem;
+}
+
+.banner-fechar:hover {
+  opacity: 0.7;
+}
+
+/* Banner de erro de validacao de formulario */
+
+.banner-erro-formulario {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--cor-perigo-fundo);
+  border: 1px solid var(--cor-perigo-borda);
+  color: var(--cor-perigo-texto);
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--raio-card);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.banner-erro-formulario .banner-erro-icone {
+  font-size: 1.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Mensagem amigavel de erro de etapa do pipeline (tela de status) */
+
+.erro-destaque {
+  background: var(--cor-perigo-fundo);
+  border: 1px solid var(--cor-perigo-borda);
+  color: var(--cor-perigo-texto);
+  padding: 1rem 1.25rem;
+  border-radius: var(--raio-card);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Secoes colapsaveis (tela de ajustes) */
+
+.secao-ajustes {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-card);
+  padding: 0 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.secao-ajustes summary {
+  cursor: pointer;
+  padding: 1rem 0;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  color: var(--cor-texto);
+  list-style: revert;
+}
+
+.secao-ajustes[open] summary {
+  border-bottom: 1px solid var(--cor-borda);
+  margin-bottom: 1rem;
+}
+
+.secao-ajustes .campo:last-of-type {
+  margin-bottom: 1.25rem;
+}
+
+.dica {
+  font-size: 0.85rem;
+  color: var(--cor-texto-secundario);
+  margin: 0 0 1rem;
+}
+
+.campo-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--cor-texto);
+  font-weight: 500;
+}
+
+.campo-checkbox input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+  accent-color: var(--cor-acento);
+}
+
+.campo-checkbox .ajuda {
+  font-size: 0.82rem;
+  color: var(--cor-texto-secundario);
+  margin: 0.3rem 0 0;
+}
+
+.dica-campo {
+  font-size: 0.78rem;
+  color: var(--cor-texto-secundario);
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.tts-chave {
+  transition: opacity 0.15s ease;
+}
+
+.tts-chave-inativa {
+  opacity: 0.45;
+}
+
+/* Icone de info + tooltip do dropdown de perfil (tela Novo projeto) */
+
+.info-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.35rem;
+  padding: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: 50%;
+  background: var(--cor-input-fundo);
+  color: var(--cor-texto-secundario);
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.info-icone:hover,
+.info-icone:focus-visible {
+  border-color: var(--cor-acento);
+  color: var(--cor-acento);
+}
+
+.tooltip-perfil {
+  margin-top: 0.4rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--cor-input-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-input);
+  color: var(--cor-texto-secundario);
+  font-size: 0.85rem;
+  transition: opacity 0.15s ease;
+}
+
+/* Tela de status - cabecalho e blocos adicionais */
+
+.status-cabecalho {
+  margin-bottom: 1.5rem;
+}
+
+.status-cabecalho h1 {
+  margin: 0 0 0.35rem;
+}
+
+.status-meta {
+  color: var(--cor-texto-secundario);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.custo-roteiro {
+  cursor: help;
+  border-bottom: 1px dotted var(--cor-texto-secundario);
+}
+
+.cotacao-aviso {
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.status-bloco {
+  margin-top: 1.25rem;
+}
+
+.status-bloco h3 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+.lista-links,
+.lista-arquivos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.link-fonte {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--cor-texto-secundario);
+  word-break: break-all;
+}
+
+.link-fonte:hover {
+  color: var(--cor-acento);
+}
+
+.lista-arquivos li {
+  font-size: 0.88rem;
+  color: var(--cor-texto);
+}
+
+/* Barra de progresso (tela de status) */
+
+.barra-progresso {
+  width: 100%;
+  height: 8px;
+  background: var(--cor-input-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.75rem 0;
+}
+
+.barra-progresso-preenchimento {
+  height: 100%;
+  background: var(--color-accent-400);
+  transition: width 0.3s ease;
+}
+
+#status-log {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--cor-texto-secundario);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.oculto {
+  display: none;
+}
+
+.link-desabilitado {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: default;
+  text-decoration: none;
+}
+
+/* Bloco "Ambiente detectado" (tela de Ajustes) */
+
+.ambiente-card {
+  margin-bottom: 1.5rem;
+}
+
+.ambiente-card p {
+  margin: 0.25rem 0;
+}
+
+.ambiente-card-ok p:first-child {
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.aviso-amarelo {
+  color: var(--cor-aviso-texto);
+}
+
+/* Modal simples */
+
+dialog.modal {
+  max-width: 480px;
+  width: 90%;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-card);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+dialog.modal::backdrop {
+  background: color-mix(in srgb, var(--color-neutral-900) 55%, transparent);
+}
+
+dialog.modal pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.creditos {
+  font-size: 0.82rem;
+  color: var(--cor-texto-secundario);
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 1.1rem;
+  }
+}
+
+/* Linhas dinamicas de "Links dos videos-fonte" (tela Novo projeto) */
+
+#lista-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.linha-link {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.linha-link input[type="url"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dropdown-marca {
+  flex: 0 0 auto;
+  width: 15rem;
+  max-width: 40vw;
+}
+
+.btn-remover-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-input);
+  background: var(--cor-input-fundo);
+  color: var(--cor-texto-secundario);
+}
+
+.btn-remover-link:hover:not(:disabled) {
+  border-color: var(--cor-perigo-borda);
+  color: var(--cor-perigo-texto);
+}
+
+.btn-remover-link:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#btn-adicionar-link,
+.btn-adicionar-link-grupo {
+  margin-top: 0.6rem;
+}
+
+/* Modo "fontes separadas" (formulario de Novo projeto) */
+
+.secao-fontes {
+  margin: 0.25rem 0 1.1rem;
+  padding: 0.9rem 1rem 1.1rem;
+  background: var(--cor-input-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-input);
+}
+
+.secao-fontes h6 {
+  margin: 0 0 0.3rem;
+}
+
+.text-muted {
+  color: var(--cor-texto-secundario);
+  font-size: 0.82rem;
+  margin: 0 0 0.6rem;
+}
+
+.upload-zone #lista-uploads {
+  margin-top: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.linha-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-input);
+  background: var(--cor-fundo);
+}
+
+.linha-upload span:first-of-type {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aviso-marca-dagua {
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--cor-aviso-fundo);
+  border: 1px solid var(--cor-aviso-borda);
+  border-radius: var(--raio-input);
+  color: var(--cor-aviso-texto);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 640px) {
+  .linha-link {
+    flex-wrap: wrap;
+  }
+
+  .dropdown-marca {
+    max-width: none;
+    width: auto;
+    flex: 1 1 100%;
+  }
+}
+
+/* Secao "Perfis de conteudo" (tela /sobre) */
+
+.secao-perfis {
+  margin-top: 1.5rem;
+}
+
+.secao-perfis .intro {
+  color: var(--cor-texto-secundario);
+  margin: 0.35rem 0 1.25rem;
+}
+
+.grid-perfis {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .grid-perfis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1080px) {
+  .grid-perfis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card-perfil {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-card);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.card-perfil h3 {
+  margin: 0;
+}
+
+.card-perfil .descricao-curta {
+  color: var(--cor-texto-secundario);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.card-perfil .descricao-longa {
+  font-size: 0.86rem;
+  color: var(--cor-texto);
+}
+
+.card-perfil .descricao-longa :is(h1, h2, h3) {
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  margin: 0.9rem 0 0.35rem;
+}
+
+.card-perfil .descricao-longa p,
+.card-perfil .descricao-longa ul {
+  margin: 0.4rem 0;
+}
+
+.metadados-perfil {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+  background: var(--color-neutral-800);
+  color: var(--color-neutral-100);
+  font-size: 0.72rem;
+}
+
+/* Badges de status coloridos (home) */
+
+.status-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.status-badge-ambar {
+  background: color-mix(in srgb, var(--cor-acento) 16%, transparent);
+  border-color: var(--cor-acento);
+  color: var(--color-accent-300);
+}
+
+.status-badge-amarelo {
+  background: var(--cor-aviso-fundo);
+  border-color: var(--cor-aviso-borda);
+  color: var(--cor-aviso-texto);
+}
+
+.status-badge-verde {
+  background: var(--cor-sucesso-fundo);
+  border-color: var(--cor-sucesso-borda);
+  color: var(--cor-sucesso-texto);
+}
+
+.status-badge-vermelho {
+  background: var(--cor-perigo-fundo);
+  border-color: var(--cor-perigo-borda);
+  color: var(--cor-perigo-texto);
+}
+
+/* Fallback para status sem cor mapeada em badge_classes (home.html) -
+   nunca deve ficar invisivel, so' sem cor de destaque. */
+.status-badge-neutro {
+  background: var(--color-neutral-800, #2a2a2a);
+  border-color: var(--color-neutral-600, #666);
+  color: var(--color-neutral-100, #ddd);
+}
+
+/* Tela de revisao de roteiro */
+
+.revisao-titulo-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.revisao-titulo-linha h1 {
+  margin: 0;
+}
+
+.editor-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.editor-cabecalho h3 {
+  margin: 0;
+}
+
+.editor-tabs {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.editor-tab {
+  padding: 0.4rem 0.85rem;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: var(--font-heading-weight);
+  border-radius: var(--raio-botao);
+  border: 1px solid var(--cor-borda);
+  background: transparent;
+  color: var(--cor-texto-secundario);
+}
+
+.editor-tab.ativo {
+  background: color-mix(in srgb, var(--cor-acento) 16%, transparent);
+  border-color: var(--cor-acento);
+  color: var(--cor-acento);
+}
+
+#roteiro-textarea {
+  width: 100%;
+  min-height: 32rem;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.roteiro-preview {
+  min-height: 32rem;
+  max-height: 48rem;
+  overflow-y: auto;
+  padding: 0.85rem 1rem;
+  background: var(--cor-input-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-input);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.roteiro-preview p {
+  margin: 0 0 0.9rem;
+}
+
+.roteiro-preview p:last-child {
+  margin-bottom: 0;
+}
+
+.contador-roteiro {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--cor-texto-secundario);
+}
+
+.nota-fonte {
+  color: var(--color-accent-300);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nota-externa {
+  color: var(--color-accent-300);
+}
+
+.nota-externa-texto {
+  color: var(--cor-texto-secundario);
+  border-bottom: 1px dotted var(--cor-texto-secundario);
+  cursor: help;
+}
+
+.nota-aviso {
+  background: var(--cor-aviso-fundo);
+  color: var(--cor-aviso-texto);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+}
+
+/* Badges numerados de nota de rodape */
+.nota-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.2rem;
+  margin: 0 0.05rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 999px;
+  vertical-align: text-top;
+  cursor: pointer;
+}
+
+.nota-badge.nota-fonte {
+  background: var(--color-accent-800);
+}
+
+.nota-badge.nota-externa {
+  background: var(--color-neutral-800);
+}
+
+.nota-badge.nota-externa-texto {
+  background: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  border-bottom: none;
+  cursor: help;
+}
+
+.nota-badge.nota-aviso {
+  cursor: help;
+}
+
+/* Painel explicativo sobre as marcacoes do roteiro */
+.painel-notas-explicativo {
+  margin-bottom: 1.25rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.painel-notas-explicativo .btn-expandir {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--cor-texto);
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: var(--font-heading-weight);
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+}
+
+.painel-notas-explicativo .painel-conteudo {
+  padding: 0 1.1rem 1.1rem;
+  font-size: 0.88rem;
+  color: var(--cor-texto-secundario);
+}
+
+.painel-notas-explicativo .painel-conteudo ul {
+  margin: 0.5rem 0;
+  padding-left: 1.1rem;
+}
+
+.painel-notas-explicativo .painel-conteudo li {
+  margin-bottom: 0.5rem;
+}
+
+.badge-exemplo {
+  cursor: default;
+  margin-right: 0.3rem;
+}
+
+.btn-ignorar-notas {
+  margin-top: 0.5rem;
+}
+
+.radio-linha,
+.checkbox-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: var(--cor-texto);
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+}
+
+.radio-linha input,
+.checkbox-linha input {
+  width: auto;
+  padding: 0;
+  accent-color: var(--cor-acento);
+}
+
+.subcontroles {
+  margin: 0.25rem 0 1.1rem 1.6rem;
+  padding: 0.9rem 1rem;
+  background: var(--cor-input-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-input);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.subcontroles .campo {
+  margin-bottom: 0;
+}
+
+.botao-perigo {
+  background: transparent;
+  color: var(--cor-perigo-texto);
+  border: 1px solid var(--cor-perigo-borda);
+}
+
+.botao-perigo:hover {
+  background: var(--cor-perigo-fundo);
+}
+
+dialog.modal.modal-video {
+  max-width: 900px;
+}
+
+dialog.modal.modal-video video {
+  width: 100%;
+  border-radius: var(--raio-input);
+  background: #000;
+}
+
+dialog.modal textarea {
+  width: 100%;
+  min-height: 8rem;
+}
+
+dialog.modal .modal-acoes {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Pipeline horizontal sticky (status.html, revisao_roteiro.html,
+   concluido.html) - substitui a antiga sidebar vertical de status.html.
+   top: precisa bater com a altura real de .bf-header (base.html) pra nao
+   sobrepor nem deixar gap. 72px = 14px padding-top + ~45px conteudo (crumb
+   10px + titulo 19px, ambos herdando line-height:1.55 do body - nenhum dos
+   dois tem line-height proprio) + 14px padding-bottom, calculado a partir
+   do CSS (nao verificado num navegador de verdade nesta sessao - se
+   aparecer gap ou sobreposicao entre header e pipeline, ajustar aqui). */
+.pipeline-horizontal {
+  position: sticky;
+  top: 72px;
+  z-index: 15;
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 -1px 0 var(--color-divider);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pipeline-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Slot de acoes (Grupo A da sessao de UX) - botoes de confirmacao/avanco/
+   retorno de cada tela vivem aqui, na mesma linha do pipeline, em vez de
+   espalhados em rodapes de conteudo. margin-left:auto empurra pra direita
+   mesmo quando .pipeline-acoes e' o unico filho de .pipeline-horizontal
+   (telas sem pipeline, ex: novo_projeto.html - ver bloco-acoes-sticky). */
+.pipeline-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  min-width: 100px;
+  cursor: default;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pipeline-step-clicavel {
+  cursor: pointer;
+  transition: transform 0.15s ease-out;
+}
+
+.pipeline-step-clicavel:hover {
+  transform: translateY(-2px);
+}
+
+.pipeline-step-clicavel:hover .pipeline-circle {
+  filter: brightness(1.2);
+}
+
+.pipeline-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  border: 2px solid var(--color-neutral-700);
+  background: var(--color-bg);
+  color: var(--color-neutral-500);
+}
+
+.pipeline-label {
+  font-size: 12px;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.pipeline-duracao {
+  font-size: 10px;
+  color: var(--color-neutral-600);
+}
+
+.pipeline-connector {
+  flex: 1;
+  height: 2px;
+  min-width: 20px;
+  background: var(--color-neutral-800);
+  margin-bottom: 32px;
+}
+
+.pipeline-step-done .pipeline-circle {
+  border-color: var(--color-accent-700);
+  background: var(--color-accent-700);
+  color: var(--color-accent-100);
+}
+
+.pipeline-step-running .pipeline-circle {
+  border-color: var(--color-accent-400);
+  color: var(--color-accent-400);
+  animation: bf-pulse 2s ease-in-out infinite;
+}
+
+.pipeline-step-waiting .pipeline-circle {
+  border-color: var(--cor-aviso-texto);
+  color: var(--cor-aviso-texto);
+}
+
+.pipeline-step-failed .pipeline-circle {
+  border-color: var(--cor-perigo-texto);
+  color: var(--cor-perigo-texto);
+  background: var(--cor-perigo-fundo);
+}
+
+.pipeline-connector-done {
+  background: var(--color-accent-700);
+}
+
+@media (max-width: 1280px) {
+  .pipeline-step { min-width: 90px; }
+  .pipeline-label { font-size: 11px; }
+  .pipeline-duracao { font-size: 9px; }
+}

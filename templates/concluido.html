@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% from '_pipeline_horizontal.html' import renderizar_pipeline %}
+{% block body_attrs %} data-projeto-id="{{ projeto_id }}"{% endblock %}
+{% block titulo %}Concluído - {{ projeto_id }}{% endblock %}
+{% block breadcrumb %}Projetos / {{ projeto_id }}{% endblock %}
+{% block titulo_pagina %}{{ titulo or projeto_id }}{% endblock %}
+{% block pipeline %}
+  {% set botoes_acao %}
+    <a class="btn btn-ghost" href="{{ url_for('home') }}"><i class="ph ph-arrow-left"></i>Voltar aos projetos</a>
+    {% if video_disponivel %}
+      <button type="button" class="btn btn-secondary" id="btn-abrir-pasta">
+        <i class="ph ph-folder-open"></i>Abrir pasta do projeto
+      </button>
+      {% if thumbnail_disponivel %}
+      <a class="btn btn-secondary"
+         href="{{ url_for('thumbnail_arquivo_raiz', projeto_id=projeto_id, nome='final.jpg') }}"
+         download="{{ projeto_id }}_thumbnail.jpg">
+        <i class="ph ph-image"></i>Baixar thumbnail
+      </a>
+      {% endif %}
+      <a class="btn btn-primary"
+         href="{{ url_for('servir_arquivo_saida', projeto_id=projeto_id, nome_arquivo='video_final.mp4') }}"
+         download="{{ projeto_id }}.mp4">
+        <i class="ph ph-download-simple"></i>Baixar vídeo final
+      </a>
+    {% endif %}
+  {% endset %}
+  {% if pipeline_steps %}
+  {% call renderizar_pipeline(pipeline_steps) %}{{ botoes_acao }}{% endcall %}
+  {% else %}
+  <div class="pipeline-horizontal"><div class="pipeline-acoes">{{ botoes_acao }}</div></div>
+  {% endif %}
+{% endblock %}
+{% block conteudo %}
+<style>
+  .conclusao-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:20px; align-items:start; }
+  @media (max-width: 900px) { .conclusao-grid { grid-template-columns:1fr; } }
+  .conclusao-thumb img { width:100%; border-radius:var(--radius-md); box-shadow:inset 0 0 0 1px var(--color-divider); display:block; }
+  .conclusao-campo { margin-bottom:16px; }
+  .conclusao-campo-cabecalho { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .conclusao-campo textarea, .conclusao-campo .conclusao-texto {
+    width:100%; font-size:13px; padding:10px 12px; border-radius:8px;
+    box-shadow:inset 0 0 0 1px var(--color-divider); background:transparent; color:var(--color-text);
+    white-space:pre-wrap; word-break:break-word;
+  }
+  .conclusao-dados { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .conclusao-dados > div { padding:10px 12px; border-radius:8px; box-shadow:inset 0 0 0 1px var(--color-divider); }
+  .conclusao-dados .rotulo { font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-neutral-500); }
+  .conclusao-dados .valor { font-size:15px; margin-top:2px; }
+  .conclusao-custo-tabela { width:100%; border-collapse:collapse; }
+  .conclusao-custo-tabela td { padding:5px 4px; border-bottom:1px solid var(--color-divider); }
+</style>
+<div>
+  <section style="padding:22px 26px 40px;">
+    <div style="display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:18px;">
+      <span class="tag tag-accent">Concluído</span>
+      <span style="font-size:12px; color:var(--color-neutral-500);">Projeto: {{ projeto_id }}</span>
+    </div>
+
+    <div class="conclusao-grid">
+      <div>
+        <div class="card" style="padding:16px;">
+          <h3 style="margin-top:0;">Vídeo final</h3>
+          {% if video_disponivel %}
+            <video controls preload="metadata" style="width: 100%; border-radius:var(--radius-md); background:#000;"
+                   src="{{ url_for('servir_arquivo_saida', projeto_id=projeto_id, nome_arquivo='video_final.mp4') }}">
+            </video>
+          {% else %}
+            <p class="aviso">O vídeo final ainda não foi montado para este projeto.</p>
+          {% endif %}
+        </div>
+
+        {% if titulo or titulos_alternativos or descricao or tags %}
+        <div class="card" style="padding:16px; margin-top:16px;">
+          <h3 style="margin-top:0;">Metadados para o YouTube</h3>
+
+          {% if titulo %}
+          <div class="conclusao-campo">
+            <div class="conclusao-campo-cabecalho">
+              <label class="text-muted" style="font-size:12px;">Título (escolhido na revisão)</label>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <div class="conclusao-texto" style="flex:1;" id="titulo-escolhido">{{ titulo }}</div>
+              <button type="button" class="btn btn-ghost" style="padding:6px 10px;" onclick="BrollFoundryConcluido.copiarTexto('titulo-escolhido', this)">
+                <i class="ph ph-copy"></i>
+              </button>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if titulos_alternativos %}
+          <div class="conclusao-campo">
+            <div class="conclusao-campo-cabecalho">
+              <label class="text-muted" style="font-size:12px;">Outras opções da revisão (não utilizadas)</label>
+            </div>
+            {% for t in titulos_alternativos %}
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; opacity:0.7;">
+              <div class="conclusao-texto" style="flex:1;" id="titulo-alternativo-{{ loop.index0 }}">{{ t }}</div>
+              <button type="button" class="btn btn-ghost" style="padding:6px 10px;" onclick="BrollFoundryConcluido.copiarTexto('titulo-alternativo-{{ loop.index0 }}', this)">
+                <i class="ph ph-copy"></i>
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if descricao %}
+          <div class="conclusao-campo">
+            <div class="conclusao-campo-cabecalho">
+              <label class="text-muted" style="font-size:12px;">Descrição</label>
+              <button type="button" class="btn btn-ghost" style="padding:6px 10px;" onclick="BrollFoundryConcluido.copiarTexto('conclusao-descricao', this)">
+                <i class="ph ph-copy"></i> Copiar
+              </button>
+            </div>
+            <div class="conclusao-texto" id="conclusao-descricao" style="min-height:80px;">{{ descricao }}</div>
+          </div>
+          {% endif %}
+
+          {% if tags %}
+          <div class="conclusao-campo" style="margin-bottom:0;">
+            <div class="conclusao-campo-cabecalho">
+              <label class="text-muted" style="font-size:12px;">Tags ({{ tags|length }})</label>
+              <button type="button" class="btn btn-ghost" style="padding:6px 10px;" onclick="BrollFoundryConcluido.copiarTexto('conclusao-tags', this)">
+                <i class="ph ph-copy"></i> Copiar todas
+              </button>
+            </div>
+            <div class="conclusao-texto" id="conclusao-tags">{{ tags|join(', ') }}</div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <div>
+        {% if thumbnail_disponivel %}
+        <div class="card conclusao-thumb" style="padding:16px;">
+          <h3 style="margin-top:0;">Thumbnail escolhida</h3>
+          <img src="{{ url_for('thumbnail_arquivo_raiz', projeto_id=projeto_id, nome='final.jpg') }}" alt="Thumbnail final">
+          <a class="btn btn-secondary" style="margin-top:10px; width:100%; justify-content:center;"
+             href="{{ url_for('thumbnail_arquivo_raiz', projeto_id=projeto_id, nome='final.jpg') }}"
+             download="{{ projeto_id }}_thumbnail.jpg">
+            <i class="ph ph-download-simple"></i> Baixar thumbnail
+          </a>
+        </div>
+        {% endif %}
+
+        <div class="card" style="padding:16px; margin-top:16px;">
+          <h3 style="margin-top:0;">Dados do projeto</h3>
+          <div class="conclusao-dados">
+            <div>
+              <div class="rotulo">Perfil</div>
+              <div class="valor">{{ perfil or "—" }}</div>
+            </div>
+            <div>
+              <div class="rotulo">Duração do vídeo</div>
+              <div class="valor">
+                {% if duracao_s %}{{ (duracao_s // 60)|int }}:{{ "%02d"|format((duracao_s % 60)|int) }}{% else %}—{% endif %}
+              </div>
+            </div>
+            {% if tempo_processamento_s %}
+            <div>
+              <div class="rotulo">Tempo de processamento (montagem)</div>
+              <div class="valor">
+                {{ (tempo_processamento_s // 60)|int }}:{{ "%02d"|format((tempo_processamento_s % 60)|int) }}
+              </div>
+            </div>
+            {% endif %}
+            <div>
+              <div class="rotulo">Custo total (estimado)</div>
+              <div class="valor">${{ "%.2f"|format(custo_detalhado.total_usd or 0) }}</div>
+            </div>
+          </div>
+          {% if custo_detalhado.itens %}
+          <details class="conclusao-custo-detalhe" style="margin-top:12px;">
+            <summary class="text-muted" style="font-size:12px; cursor:pointer;">Ver detalhamento por etapa</summary>
+            <table class="conclusao-custo-tabela" style="margin-top:8px;">
+              <tbody>
+                {% for item in custo_detalhado.itens %}
+                <tr>
+                  <td style="font-size:12px;">{{ item.rotulo }}</td>
+                  <td style="font-size:12px; text-align:right;">${{ "%.4f"|format(item.usd) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </details>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  window.BrollFoundryConcluido = {
+    copiarTexto: function (idElemento, botao) {
+      var elemento = document.getElementById(idElemento);
+      if (!elemento) return;
+      var texto = elemento.value !== undefined ? elemento.value : elemento.textContent;
+      var copiado = false;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).catch(function () {});
+        copiado = true;
+      } else {
+        try {
+          var range = document.createRange();
+          range.selectNodeContents(elemento);
+          var selecao = window.getSelection();
+          selecao.removeAllRanges();
+          selecao.addRange(range);
+          copiado = document.execCommand && document.execCommand("copy");
+          selecao.removeAllRanges();
+        } catch (e) {
+          copiado = false;
+        }
+      }
+      if (botao && copiado) {
+        var original = botao.innerHTML;
+        botao.innerHTML = '<i class="ph ph-check"></i>';
+        setTimeout(function () { botao.innerHTML = original; }, 1500);
+      }
+    }
+  };
+
+  (function () {
+    var botao = document.getElementById("btn-abrir-pasta");
+    if (!botao) return;
+    botao.addEventListener("click", function () {
+      fetch("{{ url_for('abrir_pasta_projeto', projeto_id=projeto_id) }}", { method: "POST" });
+    });
+  })();
+</script>
+<script src="{{ url_for('static', filename='pipeline_render.js') }}"></script>
+<script src="{{ url_for('static', filename='pipeline_polling.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+{% block titulo %}Novo projeto - Broll Foundry{% endblock %}
+{% block breadcrumb %}Projetos{% endblock %}
+{% block titulo_pagina %}Novo projeto{% endblock %}
+{% block pipeline %}
+  <div class="pipeline-horizontal">
+    <div class="pipeline-acoes">
+      <button type="submit" class="btn btn-primary" form="form-novo-projeto"><i class="ph ph-play"></i>Criar projeto</button>
+    </div>
+  </div>
+{% endblock %}
+{% block conteudo %}
+  <div style="display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:0; align-items:start;">
+    <div style="padding:24px 28px 48px; max-width:760px;">
+
+      {% if erro %}
+        <div class="banner-erro-formulario" role="alert">
+          <span class="banner-erro-icone" aria-hidden="true">⚠️</span>
+          <span>{{ erro.mensagem if erro is mapping else erro }}</span>
+        </div>
+      {% endif %}
+
+      <form id="form-novo-projeto" method="post" action="{{ url_for('novo') }}" enctype="multipart/form-data" style="margin-top:0; display:flex; flex-direction:column; gap:22px;">
+
+        {% set tipo_projeto_atual = (form.tipo_projeto if form else None) or "pipeline_completa" %}
+
+        <div>
+          <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">1 · Conteúdo</h6>
+          <div class="campo" style="max-width:420px;">
+            <label for="perfil">
+              Tipo de conteudo *
+              <button type="button" class="info-icone" id="info-icone-perfil"
+                      aria-label="O que e cada tipo de conteudo">?</button>
+            </label>
+            <select class="input" name="perfil" id="perfil" required>
+              <option value="">Selecione o tipo de conteudo...</option>
+              {% for item in perfis %}
+                <option value="{{ item.nome }}" data-descricao="{{ item.descricao_curta }}"
+                        {% if form and form.perfil == item.nome %}selected{% endif %}>
+                  {{ item.nome_exibicao }}
+                </option>
+              {% endfor %}
+            </select>
+            <div id="tooltip-perfil" class="tooltip-perfil oculto"></div>
+          </div>
+        </div>
+
+        <div>
+          <!-- Campo sempre visivel (fora de #secao-pipeline-completa e de
+               #secao-videos-pre-gerados) - Grupo D da sessao de correcoes
+               UX: antes ficava dentro de #secao-pipeline-completa, entao
+               sumia (display:none) ao escolher "Videos pre-gerados" e o
+               backend recebia nome="" nesse tipo de projeto. -->
+          <div class="campo" style="max-width:420px;">
+            <label for="nome">Nome do projeto</label>
+            <input class="input" type="text" id="nome" name="nome" required placeholder="caso_fulano_2026"
+                   value="{{ form.nome if form else '' }}">
+          </div>
+        </div>
+
+        <div>
+          <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">Tipo de projeto</h6>
+          <div class="campo">
+            <div style="display:flex; gap:16px; flex-wrap:wrap;">
+              <label class="radio-linha">
+                <input type="radio" name="tipo_projeto" value="pipeline_completa" id="tipo-projeto-pipeline-completa"
+                       {% if tipo_projeto_atual == "pipeline_completa" %}checked{% endif %}>
+                <span>Pipeline completa</span>
+              </label>
+              <label class="radio-linha">
+                <input type="radio" name="tipo_projeto" value="videos_pre_gerados" id="tipo-projeto-videos-pre-gerados"
+                       {% if tipo_projeto_atual == "videos_pre_gerados" %}checked{% endif %}>
+                <span>Vídeos pré-gerados</span>
+              </label>
+            </div>
+            <p class="text-muted">
+              Pipeline completa: download → transcrição → roteiro → áudio → clipes → montagem.
+              Vídeos pré-gerados: você já tem os clipes finais prontos (ex: exportados do
+              DarkPlanner Flow/Veo3, já com áudio embutido) — só concatena, sem nenhuma
+              das etapas anteriores.
+            </p>
+          </div>
+        </div>
+
+        <div id="secao-pipeline-completa" {% if tipo_projeto_atual != "pipeline_completa" %}style="display:none;"{% endif %}>
+
+        <div>
+          <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">2 · Fontes</h6>
+          {% set origem_roteiro_atual = (form.origem_roteiro if form else None) or "ia" %}
+          <div class="campo">
+            <label>Origem do roteiro</label>
+            <div style="display:flex; gap:16px; flex-wrap:wrap;">
+              <label class="radio-linha">
+                <input type="radio" name="origem_roteiro" value="ia" id="origem-roteiro-ia"
+                       {% if origem_roteiro_atual == "ia" %}checked{% endif %}>
+                <span>Gerar com IA (Claude)</span>
+              </label>
+              <label class="radio-linha">
+                <input type="radio" name="origem_roteiro" value="upload" id="origem-roteiro-upload"
+                       {% if origem_roteiro_atual == "upload" %}checked{% endif %}>
+                <span>Vou fornecer o texto (upload .txt ou .md)</span>
+              </label>
+            </div>
+            <p class="text-muted">Se fornecer texto, o sistema pula transcrição e geração via IA — economiza custo Anthropic. As fontes abaixo viram só b-roll (nunca são transcritas).</p>
+          </div>
+
+          <div id="secao-upload-roteiro" {% if origem_roteiro_atual != "upload" %}style="display:none;"{% endif %}>
+            <div class="campo" style="max-width:420px;">
+              <label for="arquivo_roteiro">Arquivo do roteiro</label>
+              <input class="input" type="file" id="arquivo_roteiro" name="arquivo_roteiro" accept=".txt,.md">
+              <p class="text-muted">Mínimo de 100 caracteres. Aceita .txt ou .md.</p>
+            </div>
+          </div>
+
+          {% set modo_fontes_atual = (form.modo_fontes if form else None) or "unificado" %}
+          <div class="campo" id="bloco-modo-fontes" {% if origem_roteiro_atual == "upload" %}style="display:none;"{% endif %}>
+            <label>Modo de fontes</label>
+            <div style="display:flex; gap:16px; flex-wrap:wrap;">
+              <label class="radio-linha">
+                <input type="radio" name="modo_fontes" value="unificado" id="modo-fontes-unificado"
+                       {% if modo_fontes_atual == "unificado" %}checked{% endif %}>
+                <span>Unificado — mesmas fontes pra transcricao e clipes</span>
+              </label>
+              <label class="radio-linha">
+                <input type="radio" name="modo_fontes" value="separado" id="modo-fontes-separado"
+                       {% if modo_fontes_atual == "separado" %}checked{% endif %}>
+                <span>Separado — fontes distintas pra transcricao e visual</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="secao-fontes-unificada" {% if modo_fontes_atual == "separado" %}style="display:none;"{% endif %}>
+            <label id="rotulo-fontes-unificada" style="display:block; margin-bottom:6px;">
+              {% if origem_roteiro_atual == "upload" %}Fontes visuais (b-roll) *{% else %}Links dos videos-fonte *{% endif %}
+            </label>
+            {% set pares = (form.pares if form and form.pares else None) or [{"url": "", "marca": "nenhuma"}] %}
+            <div id="lista-links">
+              {% for par in pares %}
+                <div class="linha-link">
+                  <input class="input" type="url" name="links[]" placeholder="https://www.youtube.com/watch?v=..."
+                         required value="{{ par.url }}">
+                  <select name="marcas_dagua[]" class="input dropdown-marca">
+                    {% for valor, rotulo in opcoes_marca_dagua %}
+                      <option value="{{ valor }}" {% if par.marca == valor %}selected{% endif %}>{{ rotulo }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="btn-remover-link" title="Remover este link">✕</button>
+                </div>
+              {% endfor %}
+            </div>
+            <button type="button" id="btn-adicionar-link" class="btn btn-ghost">
+              <i class="ph ph-plus"></i>Adicionar outro link
+            </button>
+          </div>
+
+          <div id="secao-fontes-separadas" {% if modo_fontes_atual != "separado" %}style="display:none;"{% endif %}>
+            <div class="secao-fontes">
+              <h6>Fontes de transcricao *</h6>
+              <p class="text-muted">Videos baixados e transcritos pra gerar o roteiro. Obrigatorio pelo menos 1.</p>
+              {% set pares_transcricao = (form.pares_transcricao if form and form.pares_transcricao else None) or [{"url": "", "marca": "nenhuma"}] %}
+              <div id="lista-transcricao" data-grupo="transcricao">
+                {% for par in pares_transcricao %}
+                  <div class="linha-link">
+                    <input class="input" type="url" name="links_transcricao[]" placeholder="https://www.youtube.com/watch?v=..."
+                           value="{{ par.url }}">
+                    <select name="marcas_dagua_transcricao[]" class="input dropdown-marca">
+                      {% for valor, rotulo in opcoes_marca_dagua %}
+                        <option value="{{ valor }}" {% if par.marca == valor %}selected{% endif %}>{{ rotulo }}</option>
+                      {% endfor %}
+                    </select>
+                    <button type="button" class="btn-remover-link" title="Remover este link">✕</button>
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="btn btn-ghost btn-adicionar-link-grupo" data-grupo="transcricao">
+                <i class="ph ph-plus"></i>Adicionar link
+              </button>
+            </div>
+
+            <div class="secao-fontes">
+              <h6>Fontes visuais (links YouTube)</h6>
+              <p class="text-muted">Videos baixados so' como b-roll. Transcricao descartada.</p>
+              {% set pares_visual = (form.pares_visual if form and form.pares_visual else None) or [{"url": "", "marca": "nenhuma"}] %}
+              <div id="lista-visual-links" data-grupo="visual">
+                {% for par in pares_visual %}
+                  <div class="linha-link">
+                    <input class="input" type="url" name="links_visual[]" placeholder="https://www.youtube.com/watch?v=..."
+                           value="{{ par.url }}">
+                    <select name="marcas_dagua_visual[]" class="input dropdown-marca">
+                      {% for valor, rotulo in opcoes_marca_dagua %}
+                        <option value="{{ valor }}" {% if par.marca == valor %}selected{% endif %}>{{ rotulo }}</option>
+                      {% endfor %}
+                    </select>
+                    <button type="button" class="btn-remover-link" title="Remover este link">✕</button>
+                  </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="btn btn-ghost btn-adicionar-link-grupo" data-grupo="visual">
+                <i class="ph ph-plus"></i>Adicionar link
+              </button>
+            </div>
+
+            <div class="secao-fontes">
+              <h6>Fontes visuais (upload)</h6>
+              <p class="text-muted">
+                Imagens (JPG, PNG, WebP) ou videos (MP4, MOV, WebM).
+                Maximo 500MB por arquivo.
+              </p>
+              <div id="area-upload" class="upload-zone">
+                <input type="file" id="upload-input" name="uploads[]"
+                       accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm"
+                       multiple style="display:none;">
+                <button type="button" class="btn btn-secondary" id="btn-selecionar-uploads">
+                  <i class="ph ph-upload"></i> Selecionar arquivos
+                </button>
+                <div id="lista-uploads"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="aviso-marca-dagua">
+            <span aria-hidden="true">⚠</span>
+            Marcas centrais grandes (Getty, Shutterstock, licenciamento) nao
+            podem ser removidas automaticamente — use apenas material sem
+            restricao de licenca.
+          </div>
+        </div>
+
+        <div>
+          <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">3 · Saída</h6>
+          <div class="campo" style="max-width:420px;">
+            <label for="idioma">Idioma deste projeto (opcional)</label>
+            <select class="input" id="idioma" name="idioma">
+              <option value="">Usar o padrao dos ajustes</option>
+              {% for idioma in idiomas %}
+                <option value="{{ idioma }}">{{ idioma }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <p class="dica">
+            O provedor de audio (TTS ou upload proprio) e decidido depois, na
+            tela de revisao do roteiro - nao aqui.
+          </p>
+
+          {% set legendas_queimadas_marcado = form.legendas_queimadas if form else false %}
+          <div class="campo campo-checkbox">
+            <label>
+              <input type="checkbox" name="legendas_queimadas" {% if legendas_queimadas_marcado %}checked{% endif %}>
+              Queimar legendas no video (estilo destacado, alem da legenda embutida padrao)
+            </label>
+          </div>
+          <p class="dica">
+            Musica de fundo agora e escolhida na tela de revisao do roteiro,
+            junto com a origem do audio - nao aqui.
+          </p>
+
+          {% set grayscale_marcado = form.grayscale if form else false %}
+          <div class="campo campo-checkbox">
+            <label>
+              <input type="checkbox" name="grayscale" {% if grayscale_marcado %}checked{% endif %}>
+              Vídeo em preto e branco
+            </label>
+          </div>
+          <p class="dica">
+            Aplica filtro preto-e-branco em todos os clipes. Legendas coloridas
+            ficam ainda mais destacadas. Como este filtro precisa reprocessar
+            o video inteiro, a montagem final pode demorar um pouco mais.
+          </p>
+
+          {% set gerar_thumbnail_marcado = (form.gerar_thumbnail if form else gerar_thumbnail_padrao_ajustes) and tem_openai_key %}
+          <div class="campo campo-checkbox">
+            <label>
+              <input type="checkbox" name="gerar_thumbnail" {% if gerar_thumbnail_marcado %}checked{% endif %} {% if not tem_openai_key %}disabled{% endif %}>
+              Gerar thumbnail (Etapa 7)
+            </label>
+          </div>
+          {% if tem_openai_key %}
+          <p class="dica">
+            Desmarcado, o projeto pula direto da montagem pra "concluído" -
+            sem briefing, sem tela de thumbnail. Padrão configurável em
+            Ajustes.
+          </p>
+          {% else %}
+          <p class="dica">
+            A geração de thumbnail exige uma chave da OpenAI configurada em
+            <a href="{{ url_for('ajustes') }}">Ajustes</a> - é ela que
+            compõe a imagem final a partir do briefing e das fotos dos
+            sujeitos. Configure a chave pra habilitar esta opção.
+          </p>
+          {% endif %}
+
+          <h6 style="margin:20px 0 4px;">Ajustes avançados (opcional)</h6>
+
+          {#- Presets de tamanho do roteiro (Grupo C da sessao de UX) -
+             substitui os dois campos numericos livres (palavras/minutos).
+             O valor persistido continua sendo palavras_alvo (mesmo campo
+             que scripts/3_gerar_roteiro.py:_ler_configuracao_tamanho ja
+             le) - duracao_alvo_minutos vai num hidden derivado do preset,
+             nunca digitado direto. #}
+          {% set presets_roteiro = [
+            {"valor": 800, "minutos": 5, "rotulo": "5 min"},
+            {"valor": 1600, "minutos": 10, "rotulo": "10 min"},
+            {"valor": 2400, "minutos": 15, "rotulo": "15 min"},
+            {"valor": 3200, "minutos": 20, "rotulo": "20 min"},
+            {"valor": 4000, "minutos": 25, "rotulo": "25 min (padrão)"},
+            {"valor": 4800, "minutos": 30, "rotulo": "30 min"},
+            {"valor": 7200, "minutos": 45, "rotulo": "45 min"},
+            {"valor": 9600, "minutos": 60, "rotulo": "60 min"}
+          ] %}
+          {% set palavras_alvo_atual = (form.palavras_alvo if form else 4000) | int %}
+          {#- Valor legado fora da lista (projeto de antes deste preset, ou
+             reload apos erro de validacao com um numero digitado antigo):
+             seleciona o preset mais proximo por diferenca absoluta, sem
+             tocar em nada em disco ate o usuario salvar o formulario. #}
+          {% set ns = namespace(selecionado=presets_roteiro[0].valor, minutos_selecionado=presets_roteiro[0].minutos, menor_diff=none) %}
+          {% for preset in presets_roteiro %}
+            {% set diff = (preset.valor - palavras_alvo_atual) | abs %}
+            {% if ns.menor_diff is none or diff < ns.menor_diff %}
+              {% set ns.menor_diff = diff %}
+              {% set ns.selecionado = preset.valor %}
+              {% set ns.minutos_selecionado = preset.minutos %}
+            {% endif %}
+          {% endfor %}
+          <div class="campo" id="bloco-tamanho-roteiro">
+            <label for="palavras_alvo">Tamanho alvo do roteiro</label>
+            <select class="input" name="palavras_alvo" id="palavras_alvo" style="max-width:280px;">
+              {% for preset in presets_roteiro %}
+                <option value="{{ preset.valor }}" data-minutos="{{ preset.minutos }}" {% if preset.valor == ns.selecionado %}selected{% endif %}>{{ preset.rotulo }} (~{{ preset.valor }} palavras)</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="duracao_alvo_minutos" id="duracao_alvo_minutos" value="{{ ns.minutos_selecionado }}">
+            <p class="ajuda">
+              Duração aproximada do vídeo final narrado. Cálculo aproximado:
+              ~160 palavras por minuto de fala natural. Vídeos em torno de
+              20 minutos costumam ser onde o formato de dívida narrativa
+              funciona melhor — recomendação, não limite: o alvo continua
+              sendo o que você escolher aqui.
+            </p>
+          </div>
+
+          {% set sincronizacao_ia_marcado = form.sincronizacao_ia_ativa if form else false %}
+          {% set sincronizacao_duracao_atual = (form.sincronizacao_duracao_s if form else 600) | string %}
+          <div class="campo campo-checkbox">
+            <label>
+              <input type="checkbox" name="sincronizacao_ia_ativa" id="sincronizacao-ia-ativa"
+                     {% if sincronizacao_ia_marcado %}checked{% endif %}>
+              Sincronização inteligente com IA
+            </label>
+            <p class="ajuda">
+              A IA analisa o roteiro e os clipes gerados para colocar b-roll
+              semanticamente correto nos momentos certos (ex: menção de
+              bicicleta → clipe de bicicleta), reordenando clipes já
+              renderizados. Custo adicional de API, aproximado abaixo.
+            </p>
+            <div id="sincronizacao-ia-opcoes" {% if not sincronizacao_ia_marcado %}style="display:none;"{% endif %}>
+              <label for="sincronizacao_duracao">Duração do trecho sincronizado</label>
+              <select name="sincronizacao_duracao" id="sincronizacao_duracao">
+                <option value="300" {% if sincronizacao_duracao_atual == "300" %}selected{% endif %}>Primeiros 5 minutos (~US$ 0,05)</option>
+                <option value="600" {% if sincronizacao_duracao_atual == "600" %}selected{% endif %}>Primeiros 10 minutos (~US$ 0,10)</option>
+                <option value="900" {% if sincronizacao_duracao_atual == "900" %}selected{% endif %}>Primeiros 15 minutos (~US$ 0,15)</option>
+                <option value="0" {% if sincronizacao_duracao_atual == "0" %}selected{% endif %}>Vídeo inteiro (~US$ 0,20+)</option>
+              </select>
+              <p class="ajuda">
+                Ganchos ficam no início do vídeo - a curva de retenção do
+                YouTube justifica focar nos primeiros minutos. Estimativa
+                aproximada; o custo real depende da densidade narrativa do
+                roteiro e da quantidade de clipes na janela escolhida. Um
+                log com o custo real fica em logs/ apos cada geracao.
+              </p>
+            </div>
+          </div>
+
+          {% set reorganizacao_manual_marcado = form.reorganizacao_manual_ativa if form else false %}
+          <div class="campo campo-checkbox">
+            <label>
+              <input type="checkbox" name="reorganizacao_manual_ativa"
+                     {% if reorganizacao_manual_marcado %}checked{% endif %}>
+              Reorganizar clipes manualmente antes da montagem
+            </label>
+            <p class="ajuda">
+              O pipeline pausa logo após gerar os clipes. Você abre uma tela
+              visual (roteiro + banco de clipes) para revisar/ajustar a
+              ordem antes da montagem final. Pode ser usado junto ou
+              separado da sincronização com IA acima.
+            </p>
+          </div>
+        </div>
+        </div>
+
+        <div id="secao-videos-pre-gerados" {% if tipo_projeto_atual != "videos_pre_gerados" %}style="display:none;"{% endif %}>
+          <div>
+            <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">2 · Vídeos</h6>
+            <div class="campo">
+              <label for="videos-pre-gerados-input">Arquivos de vídeo (numerados) *</label>
+              <div id="area-upload-videos-pre-gerados" class="upload-zone">
+                <input type="file" id="videos-pre-gerados-input" name="videos_pre_gerados[]"
+                       accept="video/mp4,video/quicktime,video/webm"
+                       multiple {% if tipo_projeto_atual == "videos_pre_gerados" %}required{% endif %} style="display:none;">
+                <button type="button" class="btn btn-secondary" id="btn-selecionar-videos-pre-gerados">
+                  <i class="ph ph-upload"></i> Selecionar arquivos
+                </button>
+                <div id="lista-videos-pre-gerados"></div>
+              </div>
+              <p class="text-muted">
+                Nomes devem começar com número (ex: <code>1_wide_shot.mp4</code>,
+                <code>2_close_up.mp4</code>) — a ordem numérica define a ordem final
+                do vídeo. Aceita .mp4/.mov/.webm. Total máximo de 2GB.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            {% set com_legenda_srt_marcado = form.com_legenda_srt if form else false %}
+            <div class="campo campo-checkbox">
+              <label>
+                <input type="checkbox" name="com_legenda_srt" id="com-legenda-srt"
+                       {% if com_legenda_srt_marcado %}checked{% endif %}>
+                Adicionar legenda queimada (SRT)
+              </label>
+            </div>
+            <div id="secao-arquivo-srt" class="campo" style="max-width:420px; {% if not com_legenda_srt_marcado %}display:none;{% endif %}">
+              <label for="arquivo_srt">Arquivo de legenda</label>
+              <input class="input" type="file" id="arquivo_srt" name="arquivo_srt" accept=".srt">
+            </div>
+          </div>
+        </div>
+
+        <div>
+          {#- Campo compartilhado (fora de #secao-pipeline-completa e de
+             #secao-videos-pre-gerados) - CLAUDE.md "Intro e ending
+             anexados ao video final": disponivel em todos os tipos de
+             projeto. Ambos opcionais, sem checkbox de ativacao - a mera
+             presenca do upload decide. #}
+          <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">Intro e ending</h6>
+          <p class="text-muted" style="margin-top:0;">
+            Anexados ao início e ao fim do vídeo final, fora da seleção
+            aleatória de clipes. Ambos opcionais.
+          </p>
+          <div style="display:flex; flex-wrap:wrap; gap:20px;">
+            <div class="campo" style="max-width:340px; flex:1; min-width:260px;">
+              <label for="intro_arquivo">Vídeo de intro</label>
+              <div id="area-upload-intro" class="upload-zone">
+                <input type="file" id="intro_arquivo" name="intro_arquivo"
+                       accept="video/mp4,video/quicktime,video/webm" style="display:none;">
+                <button type="button" class="btn btn-secondary" id="btn-selecionar-intro">
+                  <i class="ph ph-upload"></i> Selecionar arquivo
+                </button>
+                <div id="preview-intro"></div>
+              </div>
+            </div>
+            <div class="campo" style="max-width:340px; flex:1; min-width:260px;">
+              <label for="ending_arquivo">Vídeo de ending</label>
+              <div id="area-upload-ending" class="upload-zone">
+                <input type="file" id="ending_arquivo" name="ending_arquivo"
+                       accept="video/mp4,video/quicktime,video/webm" style="display:none;">
+                <button type="button" class="btn btn-secondary" id="btn-selecionar-ending">
+                  <i class="ph ph-upload"></i> Selecionar arquivo
+                </button>
+                <div id="preview-ending"></div>
+              </div>
+            </div>
+          </div>
+          <p class="dica">
+            Aceita .mp4/.mov/.webm. Normalizado automaticamente para o
+            mesmo padrão do vídeo final antes de anexar - qualquer
+            resolução/fps funciona.
+          </p>
+        </div>
+
+        <div>
+          {#- Campo compartilhado (fora de #secao-pipeline-completa e de
+             #secao-videos-pre-gerados) - mesmo motivo do campo "nome"
+             acima (Grupo D da sessao de correcoes UX): disponivel nos DOIS
+             tipos de projeto (CLAUDE.md - "Disponivel em todos os tipos de
+             projeto, inclusive Videos pre-gerados"). #}
+          <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">Marca d'água do canal</h6>
+          {% set marca_dagua_projeto_atual = (form.marca_dagua_projeto if form else None) or "canal" %}
+          <div class="campo">
+            <label>
+              <input type="radio" name="marca_dagua_projeto" value="canal" {% if marca_dagua_projeto_atual == "canal" %}checked{% endif %} {% if not tem_marca_dagua_canal_global %}disabled{% endif %}>
+              Usar a marca do canal (configurada em Ajustes)
+            </label><br>
+            <label>
+              <input type="radio" name="marca_dagua_projeto" value="outra" id="marca-dagua-projeto-outra" {% if marca_dagua_projeto_atual == "outra" %}checked{% endif %}>
+              Usar outra marca (upload próprio deste projeto)
+            </label><br>
+            <label>
+              <input type="radio" name="marca_dagua_projeto" value="nenhuma" {% if marca_dagua_projeto_atual == "nenhuma" %}checked{% endif %}>
+              Nenhuma marca d'água
+            </label>
+          </div>
+          {% if not tem_marca_dagua_canal_global %}
+            <p class="dica">
+              Nenhuma marca d'água de canal configurada em
+              <a href="{{ url_for('ajustes') }}">Ajustes</a> ainda - "Usar a
+              marca do canal" fica disponível depois de configurada lá.
+            </p>
+          {% endif %}
+          <div id="secao-marca-dagua-arquivo" class="campo" style="max-width:420px; {% if marca_dagua_projeto_atual != 'outra' %}display:none;{% endif %}">
+            <label for="marca_dagua_arquivo">Arquivo PNG (com transparência)</label>
+            <input class="input" type="file" id="marca_dagua_arquivo" name="marca_dagua_arquivo" accept="image/png">
+          </div>
+          <p class="dica">
+            10% da largura do vídeo, opacidade 40%, presente do início ao
+            fim. Posição definida em Ajustes.
+          </p>
+        </div>
+      </form>
+    </div>
+
+    <aside style="padding:24px 24px 40px; box-shadow:inset 1px 0 0 var(--color-divider); position:sticky; top:64px; display:flex; flex-direction:column; gap:14px;">
+      <div>
+        <h6 style="margin:0 0 8px; color:var(--color-neutral-500);">O que vai acontecer</h6>
+        <div style="display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--color-neutral-400);">
+          {% for n, label in [(1, "Download"), (2, "Transcrição"), (3, "Roteiro + revisão"), (4, "Áudio"), (5, "Clipes"), (6, "Montagem")] %}
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span style="width:17px; height:17px; flex:none; border-radius:50%; box-shadow:inset 0 0 0 1px var(--color-neutral-700); display:grid; place-items:center; font-size:9px; color:var(--color-neutral-500);">{{ n }}</span>
+              <span>{{ label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="padding:10px 12px; border-radius:var(--radius-md); background:color-mix(in srgb, #d9b062 10%, transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb, #d9b062 32%, transparent); font-size:11px; line-height:1.5; color:color-mix(in srgb, #d9b062 82%, var(--color-text));">
+        Marcas centrais grandes (Getty, Shutterstock) não podem ser removidas automaticamente — use apenas material sem restrição de licença.
+      </div>
+      <div style="font-size:11px; line-height:1.5; color:var(--color-neutral-600);">O provedor de narração é escolhido depois, na etapa de revisão do roteiro.</div>
+    </aside>
+  </div>
+
+  <script src="{{ url_for('static', filename='novo_projeto.js') }}"></script>
+{% endblock %}

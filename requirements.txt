@@ -1,0 +1,74 @@
+# Pinado para Python 3.11 no Windows. Ver CLAUDE.md secao 16 (hardware)
+# e a nota de compatibilidade CUDA/cuDNN na secao 4 (Etapa 2).
+#
+# CLAUDE.md secao 18.1 — duas categorias de pinning neste arquivo:
+#   - Bibliotecas ESTAVEIS (Flask, python-dotenv, requests, anthropic,
+#     pytest): pinadas em versao EXATA (==). Mudanca de versao e'
+#     deliberada, feita a mao quando houver motivo.
+#   - Bibliotecas VOLATEIS contra APIs externas que mudam sem aviso
+#     (yt-dlp, contra a extracao do YouTube): pinadas em versao MINIMA
+#     (>=), para que `pip install -r requirements.txt` sempre traga a
+#     mais nova disponivel. Uma versao velha de yt-dlp pode "funcionar"
+#     (nao dar erro) mas falhar silenciosamente porque o YouTube mudou
+#     mecanica de extracao — ver CLAUDE.md secao 18 para o incidente que
+#     motivou esta politica.
+
+Flask==3.0.3
+python-dotenv==1.0.1
+# 0.40.0 nao suporta a tool server-side "web_search_20250305" nem o campo
+# Usage.server_tool_use (usados pela Etapa 3, Sessao 6/CLAUDE.md secao 5.3) -
+# bump deliberado para a primeira versao que traz os dois.
+anthropic==0.69.0
+requests==2.32.3
+markdown==3.7
+
+# faster-whisper roda 100% local (nao contra uma API HTTP externa que
+# muda formato sem aviso) — versao exata por enquanto. Reavaliar para
+# ">=" se o modelo de release do faster-whisper passar a exigir
+# atualizacoes frequentes por incompatibilidade com formatos de audio
+# novos (CLAUDE.md secao 18.1).
+faster-whisper==1.0.3
+
+# Bibliotecas de runtime CUDA (cuBLAS/cuDNN) que o ctranslate2 (usado pelo
+# faster-whisper) carrega em tempo de execucao na GPU - o driver NVIDIA
+# sozinho NAO inclui isso (requisito minimo e' so "driver suportando CUDA
+# 12+", nao o CUDA Toolkit completo). Sem estes pacotes, a Etapa 2 falha
+# com "Library cublas64_12.dll is not found or cannot be loaded" mesmo em
+# GPU compativel - confirmado numa RTX 3070 Ti de verdade (Sessao 17).
+# scripts/2_transcrever.py registra as pastas bin/ destes pacotes no PATH
+# do processo automaticamente (_registrar_dlls_cuda_do_venv).
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.24.0.43
+
+# Volatil (ver nota no topo do arquivo) — versao minima, nao exata.
+yt-dlp>=2024.12.13
+
+# Testes
+pytest==8.3.3
+pytest-mock==3.14.0
+
+# So usado por scripts/criar_atalho.py (cria atalho na area de trabalho
+# durante "iniciar.bat --instalar-deps"). Nao e' importado por nenhum
+# script do pipeline - se a instalacao falhar, so o atalho fica de fora,
+# nada mais quebra.
+pywin32==308
+
+# faster-whisper traz ctranslate2 como dependencia. Se a maquina tem
+# CUDA 11 (nao CUDA 12 + cuDNN 9), rodar depois:
+#   pip install ctranslate2==3.24.0
+# (ver CLAUDE.md secao 4, Etapa 2, "Nota de compatibilidade")
+
+# Medicao de fonte real (headline engine, scripts/headline_engine.py -
+# Grupo B, filtro de encaixe tipografico) - 100% local, nao contra API
+# externa que muda formato - pin exato (CLAUDE.md secao 18.1). Tambem usada
+# pela composicao de thumbnail pra ler/salvar as fotos dos sujeitos antes
+# de mandar pra API da OpenAI (scripts/imagem/openai.py).
+Pillow==12.3.0
+
+# opencv-python e rembg[cpu] foram REMOVIDAS na sessao de simplificacao da
+# Etapa 7 (ver HISTORICO_BUGS.md) - existiam so' pro scan de frames de
+# cenario e pro recorte de sujeito com remocao de fundo que os 5 templates
+# de composicao via Pillow (scripts/thumbnail_templates.py, tambem
+# removido) consumiam. A composicao completa por IA
+# (scripts/imagem/openai.gerar_composicao) manda a foto ORIGINAL do
+# sujeito, sem recorte nenhum.

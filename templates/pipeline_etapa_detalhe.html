@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% from '_pipeline_horizontal.html' import renderizar_pipeline %}
+{% block titulo %}{{ rotulo_etapa }} - {{ projeto_id }}{% endblock %}
+{% block breadcrumb %}Projetos / {{ projeto_id }}{% endblock %}
+{% block titulo_pagina %}{{ rotulo_etapa }}{% endblock %}
+{% block pipeline %}
+  {% set botoes_acao %}
+    {% if projeto_concluido %}
+      <a href="{{ url_for('concluido', projeto_id=projeto_id) }}" class="btn btn-ghost">
+        <i class="ph ph-arrow-left"></i> Voltar à conclusão
+      </a>
+    {% endif %}
+    <a href="{{ url_for('home') if projeto_concluido else url_for('status', projeto_id=projeto_id) }}" class="btn btn-ghost">
+      <i class="ph ph-arrow-left"></i> Voltar aos projetos
+    </a>
+  {% endset %}
+  {% if pipeline_steps %}
+  {% call renderizar_pipeline(pipeline_steps) %}{{ botoes_acao }}{% endcall %}
+  {% else %}
+  <div class="pipeline-horizontal"><div class="pipeline-acoes">{{ botoes_acao }}</div></div>
+  {% endif %}
+{% endblock %}
+{% block conteudo %}
+<style>
+  .etapa-detalhe-transcricao { white-space:pre-wrap; font-size:13px; line-height:1.5; max-height:340px; overflow-y:auto; }
+  .etapa-detalhe-clipes-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+  .etapa-detalhe-clipe-item img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:6px; box-shadow:inset 0 0 0 1px var(--color-divider); display:block; }
+  .etapa-detalhe-clipe-item .clipe-meta { font-size:11px; margin-top:4px; text-align:center; }
+  .etapa-detalhe-tabela { width:100%; border-collapse:collapse; font-size:13px; }
+  .etapa-detalhe-tabela th, .etapa-detalhe-tabela td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--color-divider); }
+  .etapa-detalhe-tabela a { word-break:break-all; }
+</style>
+<div style="padding:22px 26px 60px; width:100%; max-width:none;">
+
+  <div class="banner banner-aviso" style="margin-bottom: 16px;">
+    <i class="ph ph-info"></i>
+    Modo visualização — somente leitura. Nenhuma ação desta tela altera o projeto.
+  </div>
+
+  {% if etapa == "download" %}
+    <div class="card" style="padding:16px;">
+      <h3 style="margin-top:0;">Vídeos-fonte utilizados</h3>
+      {% if not fontes_baixadas %}
+        <p class="text-muted" style="font-size:13px;">{{ mensagem_arquivos or "Nenhum arquivo baixado." }}</p>
+      {% else %}
+        <div style="overflow-x:auto;">
+          <table class="etapa-detalhe-tabela">
+            <thead>
+              <tr><th>Arquivo</th><th>Título</th><th>Duração</th><th>Origem</th><th>Tipo de uso</th><th>Link original</th></tr>
+            </thead>
+            <tbody>
+              {% for fonte in fontes_baixadas %}
+              <tr>
+                <td>{{ fonte.arquivo }}</td>
+                <td>{{ fonte.titulo or "-" }}</td>
+                <td>{{ fonte.duracao_formatada or "-" }}</td>
+                <td>{{ "Upload" if fonte.origem == "upload" else "YouTube" }}</td>
+                <td>{{ fonte.tipo_uso_rotulo or "-" }}</td>
+                <td>
+                  {% if fonte.url %}
+                    <a href="{{ fonte.url }}" target="_blank" rel="noopener">{{ fonte.url }}</a>
+                  {% else %}-{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+
+  {% elif etapa == "transcricao" %}
+    {% if not transcricoes %}
+      <p class="text-muted" style="font-size:13px;">Nenhuma transcrição disponível.</p>
+    {% else %}
+      {% for t in transcricoes %}
+      <div class="card" style="padding:16px; margin-bottom:16px;">
+        <h3 style="margin-top:0;">
+          {{ t.arquivo }}
+          {% if t.idioma %}<span class="tag tag-outline" style="margin-left:8px;">{{ t.idioma }}</span>{% endif %}
+          {% if t.duracao_formatada %}<span class="text-muted" style="font-size:12px; margin-left:8px;">{{ t.duracao_formatada }}</span>{% endif %}
+        </h3>
+        <div class="etapa-detalhe-transcricao">{{ t.texto or "(transcrição vazia)" }}</div>
+      </div>
+      {% endfor %}
+    {% endif %}
+
+  {% elif etapa == "audio" %}
+    <div class="card" style="padding:16px;">
+      <h3 style="margin-top:0;">Narração</h3>
+      {% if not audio_disponivel %}
+        <p class="text-muted" style="font-size:13px;">Nenhum áudio de narração disponível.</p>
+      {% else %}
+        {% if origem_audio %}
+        <p class="text-muted" style="font-size:12px;">Origem: {{ "Upload próprio" if origem_audio == "upload" else "Gerado por TTS" }}</p>
+        {% endif %}
+        <audio controls style="width:100%;" src="{{ url_for('narracao_audio', projeto_id=projeto_id) }}"></audio>
+      {% endif %}
+    </div>
+
+  {% elif etapa == "geracao_clipes" %}
+    <div class="card" style="padding:16px;">
+      <h3 style="margin-top:0;">Clipes (ordem final do vídeo)</h3>
+      {% if not clipes %}
+        <p class="text-muted" style="font-size:13px;">Nenhum clipe disponível.</p>
+      {% else %}
+        <p class="text-muted" style="font-size:12px; margin-top:0;">{{ clipes|length }} clipe(s).</p>
+        <div class="etapa-detalhe-clipes-grid">
+          {% for clipe in clipes %}
+          <div class="etapa-detalhe-clipe-item">
+            <img src="{{ url_for('thumb_clipe', projeto_id=projeto_id, clipe_id=clipe.clipe_id) }}" alt="{{ clipe.clipe_id }}" loading="lazy">
+            <div class="clipe-meta text-muted">
+              {{ clipe.fonte_original or "-" }} · {{ clipe.duracao_formatada or "-" }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

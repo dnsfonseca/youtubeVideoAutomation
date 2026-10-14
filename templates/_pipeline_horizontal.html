@@ -1,0 +1,35 @@
+{% macro renderizar_pipeline(steps) %}
+<div class="pipeline-horizontal">
+  <div class="pipeline-track">
+    {% for passo in steps %}
+    {% if passo.clicavel and passo.url %}
+    <a href="{{ passo.url }}" class="pipeline-step pipeline-step-{{ passo.estado }} pipeline-step-clicavel">
+    {% else %}
+    <div class="pipeline-step pipeline-step-{{ passo.estado }}">
+    {% endif %}
+      <div class="pipeline-circle">
+        {% if passo.estado == 'done' %}
+          <i class="ph ph-check"></i>
+        {% elif passo.estado == 'failed' %}
+          <i class="ph ph-x"></i>
+        {% else %}
+          {{ passo.numero }}
+        {% endif %}
+      </div>
+      <div class="pipeline-label">{{ passo.rotulo }}</div>
+      <div class="pipeline-duracao">{{ passo.duracao }}</div>
+    {% if passo.clicavel and passo.url %}
+    </a>
+    {% else %}
+    </div>
+    {% endif %}
+    {% if not loop.last %}
+    <div class="pipeline-connector pipeline-connector-{{ passo.estado }}"></div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% if caller is defined %}
+  <div class="pipeline-acoes">{{ caller() }}</div>
+  {% endif %}
+</div>
+{% endmacro %}

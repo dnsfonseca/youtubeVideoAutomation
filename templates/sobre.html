@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block titulo %}Sobre - Broll Foundry{% endblock %}
+{% block breadcrumb %}Broll Foundry{% endblock %}
+{% block titulo_pagina %}Sobre{% endblock %}
+{% block conteudo %}
+  <div style="padding:22px 28px 48px;">
+    <div style="display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:32px; align-items:start;">
+
+      <div>
+        <section class="secao-perfis">
+          <h6 style="margin:0 0 10px; color:var(--color-neutral-500);">Perfis de conteúdo</h6>
+          <p class="intro" style="max-width:62ch; font-size:14px; color:var(--color-neutral-400); line-height:1.6;">
+            O Broll Foundry adapta a geração de roteiro conforme o tipo de
+            conteúdo. Cada perfil traz regras editoriais, fontes preferidas e
+            tom apropriados ao nicho.
+          </p>
+          <div class="grid-perfis">
+            {% for perfil in perfis %}
+              <article class="card-perfil card elev-sm">
+                <h3>{{ perfil.nome_exibicao }}</h3>
+                <p class="descricao-curta">{{ perfil.descricao_curta }}</p>
+                <div class="descricao-longa">
+                  {{ perfil.descricao_longa_html | safe }}
+                </div>
+                <div class="metadados-perfil">
+                  <span class="badge">Custo estimado: ${{ perfil.custo_min }}-${{ perfil.custo_max }} por video</span>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <div class="card" style="margin-top:24px;">
+          <div class="creditos">
+            <p style="margin:0;">
+              Algumas abordagens técnicas específicas (compatibilidade do
+              shim do pyenv-win com yt-dlp, filtro zoompan para o efeito Ken
+              Burns) foram reproduzidas com crédito no código-fonte, a
+              partir do projeto <code>yt_automation</code> de Gustavo Xavier
+              (GitHub). Ver CLAUDE.md seção 2 para a postura completa sobre
+              reaproveitamento de código.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <aside style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card elev-sm">
+          <div class="card-kicker">Versão {{ versao }}</div>
+          <div class="card-title">Broll Foundry</div>
+          <p class="card-body">
+            Produto local. Seus dados, seus vídeos e suas chaves de API
+            ficam somente na sua máquina.
+          </p>
+          <button type="button" class="btn btn-secondary" id="botao-ver-licenca" style="align-self:flex-start;">
+            Ver licença
+          </button>
+        </div>
+        <div style="font-size:11px; line-height:1.55; color:var(--color-neutral-600);">
+          Este produto usa dependências do sistema como o ffmpeg. Durante a
+          primeira instalação (via <span style="font-family:ui-monospace, Menlo, monospace;">iniciar.bat --instalar-deps</span>),
+          pode ser necessário conceder permissão de administrador ao
+          Windows pra instalar componentes. Isso é normal e seguro.
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <dialog class="modal" id="modal-licenca">
+    <h2 class="dialog-title">Licença</h2>
+    <pre>{{ licenca }}</pre>
+    <button type="button" class="btn btn-secondary" id="botao-fechar-licenca">Fechar</button>
+  </dialog>
+
+  <script>
+    (function () {
+      var modal = document.getElementById("modal-licenca");
+      var abrir = document.getElementById("botao-ver-licenca");
+      var fechar = document.getElementById("botao-fechar-licenca");
+      if (!modal || !abrir || !fechar) return;
+      abrir.addEventListener("click", function () { modal.showModal(); });
+      fechar.addEventListener("click", function () { modal.close(); });
+    })();
+  </script>
+{% endblock %}
